@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --accent-h: 250;
+  --accent-c: 0.14;
+  --accent: oklch(0.55 var(--accent-c) var(--accent-h));
+  --accent-hover: oklch(0.42 var(--accent-c) var(--accent-h));
+  --accent-soft: oklch(0.94 0.03 var(--accent-h));
+
+  --body-bg: #fafaf9;
+  --sidebar-bg: #f5f4f2;
+  --panel-bg: #ffffff;
+  --panel-border: #e5e5e3;
+  --row-hover-border: #f0efed;
+  --table-head-bg: #f9f8f7;
+  --chip-bg: #f0efed;
+
+  --text-main: #1c1c1a;
+  --text-body: #3f3e3a;
+  --text-sub: #6b6b64;
+  --text-faint: #9a9a92;
+
+  --danger: oklch(0.48 0.18 25);
+  --danger-soft: oklch(0.94 0.05 25);
+  --warn: oklch(0.5 0.15 70);
+  --warn-soft: oklch(0.94 0.06 70);
+  --success: oklch(0.45 0.13 145);
+  --success-soft: oklch(0.93 0.05 145);
+}
+
+:root[data-theme="violet"] {
+  --accent-h: 300;
+  --accent-c: 0.16;
+}
+:root[data-theme="teal"] {
+  --accent-h: 190;
+  --accent-c: 0.1;
+}
+:root[data-theme="amber"] {
+  --accent-h: 70;
+  --accent-c: 0.15;
+}
+
+:root[data-mode="dark"] {
+  --body-bg: #161614;
+  --sidebar-bg: #1c1c1a;
+  --panel-bg: #201f1d;
+  --panel-border: #35342f;
+  --row-hover-border: #2a2926;
+  --table-head-bg: #262521;
+  --chip-bg: #2a2926;
+
+  --text-main: #f2f1ee;
+  --text-body: #cfcec8;
+  --text-sub: #9a9a92;
+  --text-faint: #74736c;
+}
+
+@theme inline {
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-body-bg: var(--body-bg);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-panel-bg: var(--panel-bg);
+  --color-panel-border: var(--panel-border);
+  --color-row-hover-border: var(--row-hover-border);
+  --color-table-head-bg: var(--table-head-bg);
+  --color-chip-bg: var(--chip-bg);
+  --color-text-main: var(--text-main);
+  --color-text-body: var(--text-body);
+  --color-text-sub: var(--text-sub);
+  --color-text-faint: var(--text-faint);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --font-sans: var(--font-public-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--body-bg);
+  color: var(--text-body);
+  font-family: var(--font-public-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
+
+::placeholder {
+  color: var(--text-faint);
+}
