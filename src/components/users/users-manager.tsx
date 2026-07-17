@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Employee } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 import { UserModal } from "./user-modal";
+import { EditUserModal } from "./edit-user-modal";
+import { ProjectsDesignationsPanel } from "./projects-designations-panel";
 
 const ROLE_LABELS: Record<AppUser["system_role"], string> = {
   platform_owner: "Platform Owner",
@@ -12,32 +14,24 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
   user: "Employee",
 };
 
+type ModalState = { kind: "none" } | { kind: "add" } | { kind: "replace" | "edit"; target: Employee };
+
 export function UsersManager({
   users,
   managers,
+  projects,
+  designations,
   allowedRoles,
   showReportsTo,
 }: {
   users: Employee[];
   managers: Employee[];
+  projects: { id: string; name: string }[];
+  designations: { id: string; name: string }[];
   allowedRoles: AppUser["system_role"][];
   showReportsTo: boolean;
 }) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [target, setTarget] = useState<Employee | null>(null);
-
-  function openAdd() {
-    setTarget(null);
-    setModalOpen(true);
-  }
-  function openReplace(u: Employee) {
-    setTarget(u);
-    setModalOpen(true);
-  }
-  function close() {
-    setModalOpen(false);
-    setTarget(null);
-  }
+  const [modal, setModal] = useState<ModalState>({ kind: "none" });
 
   return (
     <div>
@@ -49,12 +43,14 @@ export function UsersManager({
           </div>
         </div>
         <button
-          onClick={openAdd}
+          onClick={() => setModal({ kind: "add" })}
           className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
         >
           + Add User
         </button>
       </div>
+
+      <ProjectsDesignationsPanel projects={projects} designations={designations} />
 
       <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
         <table className="w-full border-collapse">
@@ -98,12 +94,20 @@ export function UsersManager({
                     {u.project_name ?? "—"}
                   </td>
                   <td className="px-4 py-2.5 border-b border-row-hover-border text-right">
-                    <button
-                      onClick={() => openReplace(u)}
-                      className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
-                    >
-                      Replace
-                    </button>
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => setModal({ kind: "edit", target: u })}
+                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setModal({ kind: "replace", target: u })}
+                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -112,14 +116,26 @@ export function UsersManager({
         </table>
       </div>
 
-      {modalOpen ? (
+      {modal.kind === "add" || modal.kind === "replace" ? (
         <UserModal
           employees={users}
           managers={managers}
           allowedRoles={allowedRoles}
           showReportsTo={showReportsTo}
-          presetTarget={target}
-          onClose={close}
+          presetTarget={modal.kind === "replace" ? modal.target : null}
+          onClose={() => setModal({ kind: "none" })}
+        />
+      ) : null}
+
+      {modal.kind === "edit" ? (
+        <EditUserModal
+          target={modal.target}
+          projects={projects}
+          designations={designations}
+          managers={managers}
+          canEditRole={showReportsTo}
+          allowedRoles={allowedRoles}
+          onClose={() => setModal({ kind: "none" })}
         />
       ) : null}
     </div>

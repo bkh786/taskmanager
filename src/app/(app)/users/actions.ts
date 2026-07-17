@@ -112,3 +112,105 @@ export async function createOrReplaceUser(
   revalidatePath("/users");
   return { error: null };
 }
+
+export async function createProject(
+  _prev: UserFormState,
+  formData: FormData
+): Promise<UserFormState> {
+  const appUser = await requireRole(["master_admin", "reporting_manager"]);
+  if (!appUser.org_id) return { error: "No organization on this account." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Project name is required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").insert({ org_id: appUser.org_id, name });
+  if (error) return { error: error.message };
+
+  revalidatePath("/users");
+  return { error: null };
+}
+
+export async function createDesignation(
+  _prev: UserFormState,
+  formData: FormData
+): Promise<UserFormState> {
+  const appUser = await requireRole(["master_admin", "reporting_manager"]);
+  if (!appUser.org_id) return { error: "No organization on this account." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "Designation name is required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("designations").insert({ org_id: appUser.org_id, name });
+  if (error) return { error: error.message };
+
+  revalidatePath("/users");
+  return { error: null };
+}
+
+export async function updateUser(
+  _prev: UserFormState,
+  formData: FormData
+): Promise<UserFormState> {
+  const appUser = await requireRole(["master_admin", "reporting_manager"]);
+  if (!appUser.org_id) return { error: "No organization on this account." };
+
+  const targetId = String(formData.get("userId") ?? "");
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const projectId = String(formData.get("projectId") ?? "") || null;
+  const designationId = String(formData.get("designationId") ?? "") || null;
+  const isActive = formData.get("isActive") === "on";
+  const roleInput = formData.get("role");
+  const reportsToInput = formData.get("reportsTo");
+
+  if (!targetId || !fullName) {
+    return { error: "Name is required." };
+  }
+
+  const supabase = await createClient();
+
+  if (appUser.system_role === "reporting_manager") {
+    const { data: chain } = await supabase.rpc("reporting_chain", {
+      p_manager_id: appUser.id,
+    });
+    if (!(chain ?? []).some((m) => m.id === targetId)) {
+      return { error: "You can only edit people in your reporting chain." };
+    }
+  }
+
+  const update: {
+    full_name: string;
+    project_id: string | null;
+    designation_id: string | null;
+    is_active: boolean;
+    system_role?: AppUser["system_role"];
+    reports_to?: string | null;
+  } = {
+    full_name: fullName,
+    project_id: projectId,
+    designation_id: designationId,
+    is_active: isActive,
+  };
+
+  // Role and reporting-line changes are master_admin-only -- a reporting
+  // manager can update their reportees' basic fields but not re-scope them.
+  if (appUser.system_role === "master_admin") {
+    if (roleInput) {
+      const role = String(roleInput) as AppUser["system_role"];
+      if (!CREATABLE_ROLES.master_admin.includes(role)) {
+        return { error: "You are not allowed to assign that role." };
+      }
+      update.system_role = role;
+    }
+    if (reportsToInput !== null) {
+      update.reports_to = String(reportsToInput) || null;
+    }
+  }
+
+  const { error } = await supabase.from("app_users").update(update).eq("id", targetId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/users");
+  return { error: null };
+}

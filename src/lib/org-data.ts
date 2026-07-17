@@ -11,6 +11,7 @@ export type Employee = {
   project_name: string | null;
   designation_id: string | null;
   is_active: boolean;
+  reports_to: string | null;
 };
 
 /**
@@ -46,6 +47,7 @@ export async function getAssignableEmployees(
         project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
         designation_id: r.designation_id,
         is_active: r.is_active,
+        reports_to: null,
       }));
   }
 
@@ -53,7 +55,9 @@ export async function getAssignableEmployees(
   // path is only reached for org-scoped roles in practice): full org.
   const { data, error } = await supabase
     .from("app_users")
-    .select("id, full_name, email, system_role, project_id, designation_id, is_active, project:projects(name)")
+    .select(
+      "id, full_name, email, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+    )
     .eq("org_id", appUser.org_id ?? "")
     .eq("is_active", true)
     .neq("system_role", "master_admin")
@@ -69,6 +73,7 @@ export async function getAssignableEmployees(
     project_name: (r.project as { name: string } | null)?.name ?? null,
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
+    reports_to: r.reports_to,
   }));
 }
 
@@ -104,12 +109,15 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
       project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
       designation_id: r.designation_id,
       is_active: r.is_active,
+      reports_to: null,
     }));
   }
 
   const { data, error } = await supabase
     .from("app_users")
-    .select("id, full_name, email, system_role, project_id, designation_id, is_active, project:projects(name)")
+    .select(
+      "id, full_name, email, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+    )
     .eq("org_id", appUser.org_id ?? "")
     .order("full_name");
   if (error) throw error;
@@ -123,6 +131,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     project_name: (r.project as { name: string } | null)?.name ?? null,
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
+    reports_to: r.reports_to,
   }));
 }
 
@@ -130,7 +139,7 @@ export async function getOrgManagers(orgId: string): Promise<Employee[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("app_users")
-    .select("id, full_name, email, system_role, project_id, designation_id, is_active")
+    .select("id, full_name, email, system_role, project_id, designation_id, is_active, reports_to")
     .eq("org_id", orgId)
     .eq("system_role", "reporting_manager")
     .eq("is_active", true)
@@ -143,6 +152,17 @@ export async function getOrgProjects(orgId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("projects")
+    .select("id, name")
+    .eq("org_id", orgId)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getOrgDesignations(orgId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("designations")
     .select("id, name")
     .eq("org_id", orgId)
     .order("name");
