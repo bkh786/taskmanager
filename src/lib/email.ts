@@ -1,7 +1,8 @@
 import "server-only";
 import nodemailer from "nodemailer";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/types/database.types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/types/database.types";
 
 type OrgSmtp = Pick<
   Tables<"organizations">,
@@ -13,6 +14,10 @@ type OrgSmtp = Pick<
  * notification_log. Never throws -- email is a side effect of task actions,
  * not a dependency they should fail on. Silently no-ops if the org hasn't
  * configured SMTP yet.
+ *
+ * Accepts an optional client so callers with no user session (e.g. the
+ * /api/send-email relay used by the reminders Edge Function, authenticated
+ * by shared secret instead of a session) can pass the admin client.
  */
 export async function sendOrgEmail(
   org: OrgSmtp,
@@ -22,9 +27,10 @@ export async function sendOrgEmail(
     html: string;
     notifType: string;
     taskInstanceId?: string | null;
-  }
+  },
+  client?: SupabaseClient<Database>
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   if (!org.smtp_host || !org.smtp_port || !org.smtp_from_email) {
     await supabase.from("notification_log").insert({

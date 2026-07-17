@@ -1,23 +1,18 @@
 // Deno Edge Function, invoked by pg_cron every 15 minutes (see the
 // schedule_reminder_cron migration). For each active org whose
 // organizations.reminder_time falls in the last 15 minutes (server/UTC
-// clock -- there's no per-org timezone column in the schema), sends one
-// reminder email per non-completed, non-removed, reminder_enabled task
-// instance: "upcoming" (due today), "delayed" (overdue), or "missed"
-// (overdue 3+ days). Skips an org if a reminder batch was already sent
-// today, so re-running the same 15-minute window twice is a no-op.
+// clock -- there's no per-org timezone column in the schema), classifies
+// every non-completed, non-removed, reminder_enabled task instance as
+// "upcoming" (due today), "delayed" (overdue), or "missed" (overdue 3+
+// days), and hands the actual send off to the Next.js app's /api/send-email
+// route (Node runtime -- raw SMTP to an arbitrary per-org server doesn't
+// reliably work inside the Edge Runtime's sandboxed isolate, which is why
+// Supabase's own docs point to an HTTP-API provider like Resend for
+// Edge Function email; this app needs arbitrary per-org SMTP instead, so
+// the send itself happens where TCP sockets are actually supported).
+// Skips an org if a reminder batch was already sent today, so re-running
+// the same 15-minute window twice is a no-op.
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
-
-type Org = {
-  id: string;
-  smtp_host: string | null;
-  smtp_port: number | null;
-  smtp_username: string | null;
-  smtp_password: string | null;
-  smtp_from_email: string | null;
-  reminder_time: string | null;
-};
 
 type Bucket = "upcoming" | "delayed" | "missed";
 
@@ -41,49 +36,43 @@ function isWithinWindow(nowHHMM: string, targetHHMM: string, windowMinutes: numb
   return diff >= 0 && diff < windowMinutes;
 }
 
-async function sendReminderEmail(
-  org: Org,
-  to: string,
-  bucket: Bucket,
-  taskName: string,
-  dueDateFormatted: string
+async function relayEmail(
+  appUrl: string,
+  cronSecret: string,
+  payload: {
+    orgId: string;
+    to: string;
+    subject: string;
+    html: string;
+    notifType: string;
+    taskInstanceId: string;
+  }
 ): Promise<boolean> {
-  if (!org.smtp_host || !org.smtp_port || !org.smtp_from_email) return false;
-
-  const subject =
-    bucket === "upcoming"
-      ? `Reminder: "${taskName}" is due today`
-      : bucket === "delayed"
-        ? `Overdue: "${taskName}" was due ${dueDateFormatted}`
-        : `Still not done: "${taskName}" was due ${dueDateFormatted}`;
-
   try {
-    const client = new SMTPClient({
-      connection: {
-        hostname: org.smtp_host,
-        port: org.smtp_port,
-        tls: org.smtp_port === 465,
-        auth: org.smtp_username
-          ? { username: org.smtp_username, password: org.smtp_password ?? "" }
-          : undefined,
-      },
+    const res = await fetch(`${appUrl}/api/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-cron-secret": cronSecret },
+      body: JSON.stringify(payload),
     });
-    await client.send({
-      from: org.smtp_from_email,
-      to,
-      subject,
-      content: subject,
-      html: `<p>${subject}</p>`,
-    });
-    await client.close();
-    return true;
+    return res.ok;
   } catch (err) {
-    console.error(`reminder send failed for org ${org.id}:`, err);
+    console.error("relay to /api/send-email failed:", err);
     return false;
   }
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  // app_url/cron_secret are passed in the request body (set by the pg_cron
+  // job) rather than as Edge Function secrets, so they can be updated by
+  // editing the cron job instead of redeploying.
+  const { app_url, cron_secret } = await req.json().catch(() => ({}));
+  if (!app_url || !cron_secret) {
+    return new Response(
+      JSON.stringify({ error: "app_url and cron_secret are required in the request body" }),
+      { status: 400 }
+    );
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -95,7 +84,7 @@ Deno.serve(async () => {
 
   const { data: orgs, error: orgsError } = await supabase
     .from("organizations")
-    .select("id, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email, reminder_time")
+    .select("id, reminder_time")
     .eq("is_active", true);
   if (orgsError) {
     return new Response(JSON.stringify({ error: orgsError.message }), { status: 500 });
@@ -135,21 +124,24 @@ Deno.serve(async () => {
       const bucket = classify(inst.due_date, todayIso);
       if (!bucket) continue;
 
-      const ok = await sendReminderEmail(
-        org as Org,
-        assignee.email,
-        bucket,
-        task.task_name,
-        inst.due_date
-      );
-      await supabase.from("notification_log").insert({
-        org_id: org.id,
-        task_instance_id: inst.id,
-        notif_type: `reminder_${bucket}`,
-        recipient_email: assignee.email,
-        status: ok ? "sent" : "failed",
+      const subject =
+        bucket === "upcoming"
+          ? `Reminder: "${task.task_name}" is due today`
+          : bucket === "delayed"
+            ? `Overdue: "${task.task_name}" was due ${inst.due_date}`
+            : `Still not done: "${task.task_name}" was due ${inst.due_date}`;
+
+      const ok = await relayEmail(app_url, cron_secret, {
+        orgId: org.id,
+        to: assignee.email,
+        subject,
+        html: `<p>${subject}</p>`,
+        notifType: `reminder_${bucket}`,
+        taskInstanceId: inst.id,
       });
       if (ok) sentCount++;
+      // /api/send-email logs to notification_log itself (success or
+      // failure) via sendOrgEmail, so no separate logging call here.
     }
     summary[org.id] = sentCount;
   }
