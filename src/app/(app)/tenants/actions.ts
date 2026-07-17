@@ -75,8 +75,11 @@ export async function createTenant(
 
   // Admin API invite -- sends Supabase's own invite email (magic link to set
   // a password), independent of the org's not-yet-configured SMTP settings.
+  // redirectTo points the link at /set-password, which reads the session
+  // Supabase establishes from the link's token and lets them choose one.
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    adminEmail
+    adminEmail,
+    { redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password` }
   );
   if (inviteError || !invited.user) {
     return {
