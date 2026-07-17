@@ -29,12 +29,25 @@ export default function SetPasswordPage() {
       return;
     }
 
-    // The browser client processes the access/refresh token in the hash on
-    // init and establishes a session; give it a tick then check.
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setStatus(session ? "ready" : "invalid");
-    });
+
+    // Supabase's /auth/v1/verify (used by invite/recovery links) redirects
+    // with the older implicit-flow hash tokens (#access_token=...), but
+    // @supabase/ssr's browser client defaults to the PKCE flow (expects a
+    // ?code= param) and won't pick these up automatically. Set the session
+    // from the hash explicitly instead of relying on auto-detection.
+    const accessToken = hash.get("access_token");
+    const refreshToken = hash.get("refresh_token");
+
+    if (accessToken && refreshToken) {
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ data }) => setStatus(data.session ? "ready" : "invalid"));
+    } else {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setStatus(session ? "ready" : "invalid");
+      });
+    }
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
