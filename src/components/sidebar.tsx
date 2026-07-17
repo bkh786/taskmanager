@@ -15,11 +15,19 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
 function navFor(role: AppUser["system_role"]) {
   switch (role) {
     case "platform_owner":
-      return [{ href: "/tenants", label: "Tenants" }];
+      return [
+        { href: "/platform-dashboard", label: "Platform Dashboard" },
+        { href: "/tenants", label: "Tenants" },
+        { href: "/platform-reports", label: "Reports" },
+        { href: "/bulk-upload-users", label: "Bulk Upload Users" },
+      ];
     case "master_admin":
       return [
+        { href: "/org-dashboard", label: "Dashboard" },
         { href: "/org-settings", label: "Organization Settings" },
         { href: "/users", label: "User Management" },
+        { href: "/bulk-upload-users", label: "Bulk Upload Users" },
+        { href: "/reports", label: "Reports" },
       ];
     case "reporting_manager":
       return [
@@ -29,7 +37,10 @@ function navFor(role: AppUser["system_role"]) {
         { href: "/reports", label: "Reports" },
       ];
     case "user":
-      return [{ href: "/dashboard", label: "Dashboard" }];
+      return [
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/reports", label: "Reports" },
+      ];
   }
 }
 

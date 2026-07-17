@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/org-settings/settings-form";
+import { LogoUploadForm } from "@/components/org-settings/logo-upload-form";
 
 const ROLES = [
   { name: "Employee", permissions: "View & complete own tasks" },
@@ -40,6 +41,21 @@ export default async function OrgSettingsPage() {
       </div>
 
       <SettingsForm org={org} />
+
+      <div className="mt-5">
+        <LogoUploadForm logoUrl={org.logo_url} />
+      </div>
+
+      <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5 mt-5">
+        <div className="text-[14.5px] font-bold text-text-main mb-1">Your login link</div>
+        <div className="text-[12.5px] text-text-sub mb-2.5">
+          Share this link with your team so the sign-in page shows your organization&apos;s name
+          and logo.
+        </div>
+        <code className="block text-[12.5px] text-accent bg-chip-bg px-3 py-2 rounded-md break-all">
+          {`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login?org=${org.slug}`}
+        </code>
+      </div>
 
       <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5 mt-5">
         <div className="flex items-center justify-between mb-3.5">

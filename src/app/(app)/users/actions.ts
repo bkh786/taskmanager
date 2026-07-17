@@ -4,13 +4,14 @@ import { revalidatePath } from "next/cache";
 import { requireRole, type AppUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveOrgContext } from "@/lib/org-context";
 
 export type UserFormState = { error: string | null };
 
 const CREATABLE_ROLES: Record<AppUser["system_role"], AppUser["system_role"][]> = {
   master_admin: ["master_admin", "reporting_manager", "user"],
-  reporting_manager: ["user"],
-  platform_owner: [],
+  platform_owner: ["master_admin", "reporting_manager", "user"],
+  reporting_manager: [],
   user: [],
 };
 
@@ -18,8 +19,10 @@ export async function createOrReplaceUser(
   _prev: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
-  const appUser = await requireRole(["master_admin", "reporting_manager"]);
-  if (!appUser.org_id) return { error: "No organization on this account." };
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
 
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -27,7 +30,7 @@ export async function createOrReplaceUser(
   const role = String(formData.get("role") ?? "user") as AppUser["system_role"];
   const mode = String(formData.get("mode") ?? "new_hire"); // "new_hire" | "replacing"
   const replacingUserId = String(formData.get("replacingUserId") ?? "");
-  const reportsToInput = String(formData.get("reportsTo") ?? "");
+  const reportsTo = String(formData.get("reportsTo") ?? "") || null;
 
   if (!fullName || !email || !password) {
     return { error: "Name, email, and a default password are required." };
@@ -42,11 +45,8 @@ export async function createOrReplaceUser(
     return { error: "Pick who this person is replacing." };
   }
 
-  const reportsTo =
-    appUser.system_role === "reporting_manager" ? appUser.id : reportsToInput || null;
-
   const admin = createAdminClient();
-  const supabase = await createClient();
+  const supabase = ctx.client ?? (await createClient());
 
   // Auth user creation only works via the Admin API (service role) -- there
   // is no RLS-scoped equivalent. Authorization was already checked above.
@@ -61,7 +61,7 @@ export async function createOrReplaceUser(
 
   const { error: insertError } = await supabase.from("app_users").insert({
     id: created.user.id,
-    org_id: appUser.org_id,
+    org_id: orgId,
     system_role: role,
     full_name: fullName,
     email,
@@ -110,6 +110,7 @@ export async function createOrReplaceUser(
   }
 
   revalidatePath("/users");
+  revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }
 
@@ -117,17 +118,20 @@ export async function createProject(
   _prev: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
-  const appUser = await requireRole(["master_admin", "reporting_manager"]);
-  if (!appUser.org_id) return { error: "No organization on this account." };
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Project name is required." };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("projects").insert({ org_id: appUser.org_id, name });
+  const supabase = ctx.client ?? (await createClient());
+  const { error } = await supabase.from("projects").insert({ org_id: orgId, name });
   if (error) return { error: error.message };
 
   revalidatePath("/users");
+  revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }
 
@@ -135,17 +139,20 @@ export async function createDesignation(
   _prev: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
-  const appUser = await requireRole(["master_admin", "reporting_manager"]);
-  if (!appUser.org_id) return { error: "No organization on this account." };
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Designation name is required." };
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("designations").insert({ org_id: appUser.org_id, name });
+  const supabase = ctx.client ?? (await createClient());
+  const { error } = await supabase.from("designations").insert({ org_id: orgId, name });
   if (error) return { error: error.message };
 
   revalidatePath("/users");
+  revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }
 
@@ -153,8 +160,7 @@ export async function updateUser(
   _prev: UserFormState,
   formData: FormData
 ): Promise<UserFormState> {
-  const appUser = await requireRole(["master_admin", "reporting_manager"]);
-  if (!appUser.org_id) return { error: "No organization on this account." };
+  const appUser = await requireRole(["master_admin", "reporting_manager", "platform_owner"]);
 
   const targetId = String(formData.get("userId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
@@ -168,10 +174,15 @@ export async function updateUser(
     return { error: "Name is required." };
   }
 
-  const supabase = await createClient();
+  // platform_owner has no org_id of their own, so app_users_update's RLS
+  // check (current_org_id() = org_id) never passes for them -- they need
+  // the service-role client, same as the other tenant-management actions.
+  const supabase =
+    appUser.system_role === "platform_owner" ? createAdminClient() : await createClient();
 
   if (appUser.system_role === "reporting_manager") {
-    const { data: chain } = await supabase.rpc("reporting_chain", {
+    const readClient = await createClient();
+    const { data: chain } = await readClient.rpc("reporting_chain", {
       p_manager_id: appUser.id,
     });
     if (!(chain ?? []).some((m) => m.id === targetId)) {
@@ -193,12 +204,13 @@ export async function updateUser(
     is_active: isActive,
   };
 
-  // Role and reporting-line changes are master_admin-only -- a reporting
-  // manager can update their reportees' basic fields but not re-scope them.
-  if (appUser.system_role === "master_admin") {
+  // Role and reporting-line changes are master_admin/platform_owner-only --
+  // a reporting manager can update their reportees' basic fields but not
+  // re-scope them.
+  if (appUser.system_role === "master_admin" || appUser.system_role === "platform_owner") {
     if (roleInput) {
       const role = String(roleInput) as AppUser["system_role"];
-      if (!CREATABLE_ROLES.master_admin.includes(role)) {
+      if (!CREATABLE_ROLES[appUser.system_role].includes(role)) {
         return { error: "You are not allowed to assign that role." };
       }
       update.system_role = role;
@@ -211,6 +223,8 @@ export async function updateUser(
   const { error } = await supabase.from("app_users").update(update).eq("id", targetId);
   if (error) return { error: error.message };
 
+  const orgId = String(formData.get("orgId") ?? "");
   revalidatePath("/users");
+  if (orgId) revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }

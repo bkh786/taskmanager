@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getTenants } from "@/lib/tenant-data";
 import { fmtDate } from "@/lib/task-status";
@@ -45,7 +46,7 @@ export default async function TenantsPage() {
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-table-head-bg">
-              {["Tenant", "Admin", "Plan", "Users / Limit", "Status", "Billing", "Created"].map(
+              {["Tenant", "Admin", "Plan", "Users / Limit", "Status", "Billing", "Created", ""].map(
                 (h) => (
                   <th
                     key={h}
@@ -60,7 +61,7 @@ export default async function TenantsPage() {
           <tbody>
             {tenants.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-[13px] text-text-faint">
+                <td colSpan={8} className="px-4 py-6 text-center text-[13px] text-text-faint">
                   No tenants yet.
                 </td>
               </tr>
@@ -101,6 +102,14 @@ export default async function TenantsPage() {
                     </td>
                     <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border whitespace-nowrap">
                       {t.created_at ? fmtDate(t.created_at) : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 border-b border-row-hover-border whitespace-nowrap text-right">
+                      <Link
+                        href={`/tenants/${t.id}`}
+                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                      >
+                        Manage
+                      </Link>
                     </td>
                   </tr>
                 );

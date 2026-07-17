@@ -6,11 +6,18 @@ import type { Tables } from "@/types/database.types";
 
 const initialState: SettingsFormState = { error: null, success: false };
 
-export function SettingsForm({ org }: { org: Tables<"organizations"> }) {
+export function SettingsForm({
+  org,
+  orgId,
+}: {
+  org: Tables<"organizations">;
+  orgId?: string;
+}) {
   const [state, formAction, pending] = useActionState(updateOrgSettings, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
       <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
         <div className="text-[14.5px] font-bold text-text-main mb-4">
           Company profile

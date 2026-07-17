@@ -27,12 +27,24 @@ export default async function TaskDetailPage({
       `id, task_id, due_date, status, completed_at, comment, attachment_url,
        assignee_id, original_assignee_id,
        task:tasks!task_instances_task_id_fkey ( task_name, description, is_recurring, recurrence_kind, reminder_enabled ),
-       assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, project:projects(name) )`
+       assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, reports_to, project:projects(name) )`
     )
     .eq("id", id)
     .single();
 
   if (error || !data || !data.task || !data.assignee) notFound();
+
+  // PostgREST can't resolve self-referencing embeds on app_users, so the
+  // reporting manager's name needs a separate lookup (see dashboard-data.ts).
+  let managerName: string | null = null;
+  if (data.assignee.reports_to) {
+    const { data: manager } = await supabase
+      .from("app_users")
+      .select("full_name")
+      .eq("id", data.assignee.reports_to)
+      .maybeSingle();
+    managerName = manager?.full_name ?? null;
+  }
 
   const instance: DashboardInstance = {
     id: data.id,
@@ -51,6 +63,7 @@ export default async function TaskDetailPage({
     reminder_enabled: !!data.task.reminder_enabled,
     assignee_name: data.assignee.full_name,
     assignee_role: data.assignee.system_role,
+    assignee_manager_name: managerName,
     project_name: (data.assignee.project as { name: string } | null)?.name ?? null,
   };
 

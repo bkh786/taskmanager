@@ -35,7 +35,7 @@ export async function getCurrentAppUser(): Promise<AppUser | null> {
 export function roleHome(role: AppUser["system_role"]): string {
   switch (role) {
     case "platform_owner":
-      return "/tenants";
+      return "/platform-dashboard";
     case "master_admin":
       return "/org-settings";
     case "reporting_manager":

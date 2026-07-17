@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { roleHome } from "@/lib/auth";
 import type { LoginState } from "./types";
@@ -28,7 +29,7 @@ export async function signIn(
 
   const { data: appUser } = await supabase
     .from("app_users")
-    .select("system_role, is_active")
+    .select("system_role, is_active, organizations(slug)")
     .eq("id", data.user.id)
     .single();
 
@@ -37,6 +38,18 @@ export async function signIn(
     return {
       error: "This account is inactive or not provisioned. Contact your admin.",
     };
+  }
+
+  // Remembers this browser's org so a future visit to a bare /login (no
+  // ?org=slug) still shows the right branding, without needing subdomains.
+  const orgSlug = (appUser.organizations as { slug: string } | null)?.slug;
+  if (orgSlug) {
+    const cookieStore = await cookies();
+    cookieStore.set("tm-org", orgSlug, {
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+      path: "/",
+    });
   }
 
   redirect(roleHome(appUser.system_role));

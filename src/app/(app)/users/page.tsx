@@ -27,6 +27,7 @@ export default async function UsersPage() {
       designations={designations}
       allowedRoles={[...allowedRoles]}
       showReportsTo={appUser.system_role === "master_admin"}
+      canCreate={appUser.system_role === "master_admin"}
     />
   );
 }

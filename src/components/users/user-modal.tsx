@@ -20,6 +20,7 @@ export function UserModal({
   allowedRoles,
   showReportsTo,
   presetTarget,
+  orgId,
   onClose,
 }: {
   employees: Employee[];
@@ -27,6 +28,7 @@ export function UserModal({
   allowedRoles: AppUser["system_role"][];
   showReportsTo: boolean;
   presetTarget: Employee | null;
+  orgId?: string;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<"new_hire" | "replacing">(
@@ -91,6 +93,7 @@ export function UserModal({
           className="flex flex-col gap-3.5"
         >
           <input type="hidden" name="mode" value={mode} />
+          {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
 
           {mode === "replacing" ? (
             <div>

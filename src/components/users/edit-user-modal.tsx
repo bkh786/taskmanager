@@ -21,6 +21,7 @@ export function EditUserModal({
   managers,
   canEditRole,
   allowedRoles,
+  orgId,
   onClose,
 }: {
   target: Employee;
@@ -29,6 +30,7 @@ export function EditUserModal({
   managers: Employee[];
   canEditRole: boolean;
   allowedRoles: AppUser["system_role"][];
+  orgId?: string;
   onClose: () => void;
 }) {
   const [state, formAction, pending] = useActionState(updateUser, initialState);
@@ -55,6 +57,7 @@ export function EditUserModal({
           className="flex flex-col gap-3.5"
         >
           <input type="hidden" name="userId" value={target.id} />
+          {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
 
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">

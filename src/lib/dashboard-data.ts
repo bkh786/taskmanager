@@ -21,6 +21,7 @@ export type DashboardInstance = {
   reminder_enabled: boolean;
   assignee_name: string;
   assignee_role: AppUser["system_role"] | null;
+  assignee_manager_name: string | null;
   project_name: string | null;
 };
 
@@ -45,6 +46,7 @@ type RawRow = {
     full_name: string;
     system_role: AppUser["system_role"];
     project: { name: string } | null;
+    reports_to: string | null;
   } | null;
 };
 
@@ -64,7 +66,9 @@ export async function getDashboardInstances(
       `id, task_id, due_date, status, completed_at, comment, attachment_url,
        assignee_id, original_assignee_id,
        task:tasks!task_instances_task_id_fkey ( task_name, description, is_recurring, recurrence_kind, reminder_enabled ),
-       assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, project:projects(name) )`
+       assignee:app_users!task_instances_assignee_id_fkey (
+         full_name, system_role, reports_to, project:projects(name)
+       )`
     )
     .eq("removed", false)
     .order("due_date", { ascending: true });
@@ -76,7 +80,24 @@ export async function getDashboardInstances(
   const { data, error } = await query;
   if (error) throw error;
 
-  return ((data ?? []) as unknown as RawRow[])
+  const rows = (data ?? []) as unknown as RawRow[];
+
+  // PostgREST can't resolve self-referencing embeds on app_users (multiple
+  // FKs back to itself), so the reporting-manager's name is resolved via a
+  // separate id -> full_name lookup instead of a nested embed.
+  const managerIds = [
+    ...new Set(rows.map((r) => r.assignee?.reports_to).filter((id): id is string => !!id)),
+  ];
+  const managerNames = new Map<string, string>();
+  if (managerIds.length > 0) {
+    const { data: managers } = await supabase
+      .from("app_users")
+      .select("id, full_name")
+      .in("id", managerIds);
+    for (const m of managers ?? []) managerNames.set(m.id, m.full_name);
+  }
+
+  return rows
     .filter((r) => r.task && r.assignee)
     .map((r) => ({
       id: r.id,
@@ -95,6 +116,9 @@ export async function getDashboardInstances(
       reminder_enabled: !!r.task!.reminder_enabled,
       assignee_name: r.assignee!.full_name,
       assignee_role: r.assignee!.system_role,
+      assignee_manager_name: r.assignee!.reports_to
+        ? (managerNames.get(r.assignee!.reports_to) ?? null)
+        : null,
       project_name: r.assignee!.project?.name ?? null,
     }));
 }
@@ -172,7 +196,7 @@ export function groupInstancesByTask(instances: DashboardInstance[]): TaskGroup[
   return groups.sort((a, b) => a.representative.due_date.localeCompare(b.representative.due_date));
 }
 
-export type BreakdownMode = "project" | "employee" | "role";
+export type BreakdownMode = "project" | "employee" | "role" | "manager";
 
 const ROLE_LABELS: Record<AppUser["system_role"], string> = {
   platform_owner: "Platform Owner",
@@ -192,7 +216,9 @@ export function computeBreakdown(
         ? (i.project_name ?? "No project")
         : mode === "employee"
           ? i.assignee_name
-          : ROLE_LABELS[i.assignee_role ?? "user"];
+          : mode === "manager"
+            ? (i.assignee_manager_name ?? "No manager")
+            : ROLE_LABELS[i.assignee_role ?? "user"];
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(i);
   }

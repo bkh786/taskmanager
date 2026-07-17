@@ -7,12 +7,15 @@ import { fmtDate } from "@/lib/task-status";
 export function ExportButton({
   rows,
   appUrl,
+  showOrganization = false,
 }: {
   rows: ReportRow[];
   appUrl: string;
+  showOrganization?: boolean;
 }) {
   function download() {
     const data = rows.map((r) => ({
+      ...(showOrganization ? { Organization: r.organization } : {}),
       "Task Name": r.taskName,
       "Assigned Date": fmtDate(r.assignedDate),
       "Due Date": fmtDate(r.dueDate),

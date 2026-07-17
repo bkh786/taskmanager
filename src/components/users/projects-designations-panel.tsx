@@ -8,9 +8,11 @@ const initialState: UserFormState = { error: null };
 function AddForm({
   action,
   placeholder,
+  orgId,
 }: {
   action: (prev: UserFormState, fd: FormData) => Promise<UserFormState>;
   placeholder: string;
+  orgId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [value, setValue] = useState("");
@@ -31,6 +33,7 @@ function AddForm({
       }}
       className="flex gap-2"
     >
+      {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
       <input
         name="name"
         required
@@ -54,9 +57,13 @@ function AddForm({
 export function ProjectsDesignationsPanel({
   projects,
   designations,
+  canCreate = true,
+  orgId,
 }: {
   projects: { id: string; name: string }[];
   designations: { id: string; name: string }[];
+  canCreate?: boolean;
+  orgId?: string;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4 mb-5">
@@ -76,7 +83,9 @@ export function ProjectsDesignationsPanel({
             ))
           )}
         </div>
-        <AddForm action={createProject} placeholder="New project name" />
+        {canCreate ? (
+          <AddForm action={createProject} placeholder="New project name" orgId={orgId} />
+        ) : null}
       </div>
 
       <div className="bg-panel-bg border border-panel-border rounded-[10px] p-4">
@@ -95,7 +104,9 @@ export function ProjectsDesignationsPanel({
             ))
           )}
         </div>
-        <AddForm action={createDesignation} placeholder="New designation name" />
+        {canCreate ? (
+          <AddForm action={createDesignation} placeholder="New designation name" orgId={orgId} />
+        ) : null}
       </div>
     </div>
   );

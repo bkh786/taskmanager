@@ -5,15 +5,18 @@ export function BreakdownPanel({
   rows,
   mode,
   buildHref,
+  showManager = false,
 }: {
   rows: { label: string; total: number; completed: number; delayed: number; completedPct: number }[];
   mode: BreakdownMode;
   buildHref: (mode: BreakdownMode) => string;
+  showManager?: boolean;
 }) {
   const tabs: { id: BreakdownMode; label: string }[] = [
     { id: "project", label: "Project" },
     { id: "employee", label: "Employee" },
     { id: "role", label: "Role" },
+    ...(showManager ? [{ id: "manager" as const, label: "Reporting Manager" }] : []),
   ];
 
   return (

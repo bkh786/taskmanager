@@ -23,6 +23,8 @@ export function UsersManager({
   designations,
   allowedRoles,
   showReportsTo,
+  canCreate = true,
+  orgId,
 }: {
   users: Employee[];
   managers: Employee[];
@@ -30,6 +32,10 @@ export function UsersManager({
   designations: { id: string; name: string }[];
   allowedRoles: AppUser["system_role"][];
   showReportsTo: boolean;
+  /** Whether this viewer can create/replace users and add projects/designations. */
+  canCreate?: boolean;
+  /** Set only when a platform_owner is managing a tenant other than their own. */
+  orgId?: string;
 }) {
   const [modal, setModal] = useState<ModalState>({ kind: "none" });
 
@@ -42,15 +48,22 @@ export function UsersManager({
             Manage employees across your tenant
           </div>
         </div>
-        <button
-          onClick={() => setModal({ kind: "add" })}
-          className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
-        >
-          + Add User
-        </button>
+        {canCreate ? (
+          <button
+            onClick={() => setModal({ kind: "add" })}
+            className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
+          >
+            + Add User
+          </button>
+        ) : null}
       </div>
 
-      <ProjectsDesignationsPanel projects={projects} designations={designations} />
+      <ProjectsDesignationsPanel
+        projects={projects}
+        designations={designations}
+        canCreate={canCreate}
+        orgId={orgId}
+      />
 
       <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
         <table className="w-full border-collapse">
@@ -101,12 +114,14 @@ export function UsersManager({
                       >
                         Edit
                       </button>
-                      <button
-                        onClick={() => setModal({ kind: "replace", target: u })}
-                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
-                      >
-                        Replace
-                      </button>
+                      {canCreate ? (
+                        <button
+                          onClick={() => setModal({ kind: "replace", target: u })}
+                          className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                        >
+                          Replace
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -123,6 +138,7 @@ export function UsersManager({
           allowedRoles={allowedRoles}
           showReportsTo={showReportsTo}
           presetTarget={modal.kind === "replace" ? modal.target : null}
+          orgId={orgId}
           onClose={() => setModal({ kind: "none" })}
         />
       ) : null}
@@ -135,6 +151,7 @@ export function UsersManager({
           managers={managers}
           canEditRole={showReportsTo}
           allowedRoles={allowedRoles}
+          orgId={orgId}
           onClose={() => setModal({ kind: "none" })}
         />
       ) : null}
