@@ -6,6 +6,7 @@ import type { AppUser } from "@/lib/auth";
 import { UserModal } from "./user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import { ProjectsDesignationsPanel } from "./projects-designations-panel";
+import { ExportUsersButton } from "./export-users-button";
 
 const ROLE_LABELS: Record<AppUser["system_role"], string> = {
   platform_owner: "Platform Owner",
@@ -48,14 +49,17 @@ export function UsersManager({
             Manage employees across your tenant
           </div>
         </div>
-        {canCreate ? (
-          <button
-            onClick={() => setModal({ kind: "add" })}
-            className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
-          >
-            + Add User
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2.5">
+          <ExportUsersButton users={users} />
+          {canCreate ? (
+            <button
+              onClick={() => setModal({ kind: "add" })}
+              className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
+            >
+              + Add User
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <ProjectsDesignationsPanel

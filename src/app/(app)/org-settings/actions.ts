@@ -106,3 +106,37 @@ export async function uploadOrgLogo(
   revalidatePath("/login");
   return { error: null };
 }
+
+export type DomainFormState = { error: string | null; domain?: string };
+
+export async function updateLoginDomain(
+  _prev: DomainFormState,
+  formData: FormData
+): Promise<DomainFormState> {
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
+
+  let domain = String(formData.get("domain") ?? "").trim().replace(/\/+$/, "");
+  if (!domain) return { error: "Domain is required." };
+  if (!/^https?:\/\//i.test(domain)) domain = `https://${domain}`;
+  try {
+    new URL(domain);
+  } catch {
+    return { error: "Enter a valid domain, e.g. tasks.yourcompany.com." };
+  }
+
+  const supabase = ctx.client ?? (await createClient());
+  const { error } = await supabase
+    .from("organizations")
+    .update({ custom_login_domain: domain })
+    .eq("id", orgId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/org-settings");
+  revalidatePath(`/tenants/${orgId}`);
+  // Returned so the form can sync its displayed URL to the normalized
+  // value (e.g. "https://" prepended) without waiting for a page reload.
+  return { error: null, domain };
+}

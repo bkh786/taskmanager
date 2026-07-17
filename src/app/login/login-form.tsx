@@ -17,11 +17,14 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
     >
       <div className="flex flex-col items-center gap-3 mb-7">
         {branding?.logoUrl ? (
+          // Natural aspect ratio, bounded by max-height/max-width -- logos
+          // vary per org (square, circular, wide rectangular banners) and
+          // shouldn't be cropped or squeezed into a fixed square tile.
           // eslint-disable-next-line @next/next/no-img-element -- per-tenant Storage URL, not a static/optimizable asset
           <img
             src={branding.logoUrl}
             alt={branding.name}
-            className="w-12 h-12 rounded-[10px] object-contain"
+            className="max-h-16 max-w-[220px] w-auto h-auto object-contain"
           />
         ) : (
           <div className="w-12 h-12 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[17px]">

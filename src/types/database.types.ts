@@ -220,6 +220,7 @@ export type Database = {
           auto_deactivate_date: string | null
           billing_status: string
           created_at: string | null
+          custom_login_domain: string | null
           id: string
           is_active: boolean | null
           logo_url: string | null
@@ -238,6 +239,7 @@ export type Database = {
           auto_deactivate_date?: string | null
           billing_status?: string
           created_at?: string | null
+          custom_login_domain?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
@@ -256,6 +258,7 @@ export type Database = {
           auto_deactivate_date?: string | null
           billing_status?: string
           created_at?: string | null
+          custom_login_domain?: string | null
           id?: string
           is_active?: boolean | null
           logo_url?: string | null

@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { delayDays, todayIso } from "@/lib/task-status";
+import { delayDays, todayIso, fmtTime } from "@/lib/task-status";
 import type { AppUser } from "@/lib/auth";
 
 export type ReportRow = {
@@ -10,6 +10,7 @@ export type ReportRow = {
   assignedDate: string;
   dueDate: string;
   completedDate: string | null;
+  completedTime: string;
   delayInDays: number;
   status: string;
   evidencePath: string;
@@ -62,6 +63,7 @@ function mapRow(r: RawRow, orgName: string): ReportRow {
     assignedDate: r.created_at ?? "",
     dueDate: r.due_date,
     completedDate: r.completed_at,
+    completedTime: fmtTime(r.completed_at),
     delayInDays: delayDays(r.due_date, r.completed_at),
     status: r.status ?? "pending",
     evidencePath: r.attachment_url ?? "",

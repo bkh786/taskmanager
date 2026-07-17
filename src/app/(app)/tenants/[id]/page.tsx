@@ -10,6 +10,7 @@ import {
 } from "@/lib/tenant-data";
 import { SettingsForm } from "@/components/org-settings/settings-form";
 import { LogoUploadForm } from "@/components/org-settings/logo-upload-form";
+import { LoginLinkForm } from "@/components/org-settings/login-link-form";
 import { UsersManager } from "@/components/users/users-manager";
 
 export default async function TenantManagePage({
@@ -42,8 +43,16 @@ export default async function TenantManagePage({
 
       <div className="text-[14.5px] font-bold text-text-main mb-3">Organization settings</div>
       <SettingsForm org={org} orgId={orgId} />
-      <div className="mt-5 mb-8">
+      <div className="mt-5">
         <LogoUploadForm logoUrl={org.logo_url} orgId={orgId} />
+      </div>
+      <div className="mt-5 mb-8">
+        <LoginLinkForm
+          domain={org.custom_login_domain}
+          slug={org.slug}
+          defaultDomain={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+          orgId={orgId}
+        />
       </div>
 
       <div className="border-t border-panel-border pt-6">

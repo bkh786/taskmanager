@@ -13,7 +13,8 @@ export function ReportTable({
     "Task Name",
     "Assigned",
     "Due",
-    "Completed",
+    "Completed Date",
+    "Completed Time",
     "Delay (d)",
     "Status",
     "Assignee",
@@ -65,6 +66,9 @@ export function ReportTable({
                 </td>
                 <td className="px-3.5 py-2.5 text-[12.5px] text-text-body border-b border-row-hover-border whitespace-nowrap">
                   {r.completedDate ? fmtDate(r.completedDate) : "—"}
+                </td>
+                <td className="px-3.5 py-2.5 text-[12.5px] text-text-body border-b border-row-hover-border whitespace-nowrap">
+                  {r.completedTime || "—"}
                 </td>
                 <td className="px-3.5 py-2.5 text-[12.5px] text-text-body border-b border-row-hover-border whitespace-nowrap">
                   {r.delayInDays}

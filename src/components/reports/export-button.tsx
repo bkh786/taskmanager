@@ -20,6 +20,7 @@ export function ExportButton({
       "Assigned Date": fmtDate(r.assignedDate),
       "Due Date": fmtDate(r.dueDate),
       "Completion Date": r.completedDate ? fmtDate(r.completedDate) : "",
+      "Completion Time": r.completedTime,
       "Delay (days)": r.delayInDays,
       Status: r.status,
       "Completion Evidence": r.evidencePath ? `${appUrl}/tasks/${r.instanceId}` : "",
