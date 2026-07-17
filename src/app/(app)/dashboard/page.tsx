@@ -4,6 +4,8 @@ import {
   getDashboardInstances,
   computeKpis,
   computeBreakdown,
+  groupInstancesByTask,
+  uniqueTaskCount,
   type BreakdownMode,
 } from "@/lib/dashboard-data";
 import { getAssignableEmployees, getOrgProjects } from "@/lib/org-data";
@@ -49,6 +51,8 @@ export default async function DashboardPage({
   }
 
   const kpis = computeKpis(instances);
+  const taskGroups = groupInstancesByTask(instances);
+  const uniqueTotal = uniqueTaskCount(instances);
   const breakdownRows = isManager ? computeBreakdown(instances, breakdownMode) : [];
   const completionPct = kpis.total ? Math.round((kpis.completed / kpis.total) * 100) : 0;
 
@@ -80,7 +84,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {isManager ? <KpiCards kpis={kpis} /> : null}
+      {isManager ? <KpiCards kpis={kpis} uniqueTaskTotal={uniqueTotal} /> : null}
 
       {isManager ? (
         <BreakdownPanel
@@ -116,8 +120,8 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {view === "table" ? <TableView instances={instances} /> : null}
-      {view === "kanban" ? <KanbanView instances={instances} /> : null}
+      {view === "table" ? <TableView tasks={taskGroups} /> : null}
+      {view === "kanban" ? <KanbanView tasks={taskGroups} /> : null}
       {view === "calendar" ? (
         <CalendarView instances={instances} monthIso={monthIso} />
       ) : null}

@@ -26,7 +26,7 @@ export default async function TaskDetailPage({
     .select(
       `id, task_id, due_date, status, completed_at, comment, attachment_url,
        assignee_id, original_assignee_id,
-       task:tasks!task_instances_task_id_fkey ( task_name, description, is_recurring, reminder_enabled ),
+       task:tasks!task_instances_task_id_fkey ( task_name, description, is_recurring, recurrence_kind, reminder_enabled ),
        assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, project:projects(name) )`
     )
     .eq("id", id)
@@ -47,6 +47,7 @@ export default async function TaskDetailPage({
     task_name: data.task.task_name,
     description: data.task.description,
     is_recurring: !!data.task.is_recurring,
+    recurrence_kind: data.task.recurrence_kind ?? "one_time",
     reminder_enabled: !!data.task.reminder_enabled,
     assignee_name: data.assignee.full_name,
     assignee_role: data.assignee.system_role,

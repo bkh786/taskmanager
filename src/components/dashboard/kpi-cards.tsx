@@ -1,10 +1,14 @@
 export function KpiCards({
   kpis,
+  uniqueTaskTotal,
 }: {
   kpis: { total: number; today: number; week: number; delayed: number; completed: number };
+  /** "Total Tasks" counts distinct tasks, not instances -- a weekly task
+   * with 9 upcoming occurrences is still one task. */
+  uniqueTaskTotal: number;
 }) {
   const cards = [
-    { label: "Total Tasks", value: kpis.total, dot: null },
+    { label: "Total Tasks", value: uniqueTaskTotal, dot: null },
     { label: "Due Today", value: kpis.today, dot: "oklch(0.45 0.16 250)" },
     { label: "Due This Week", value: kpis.week, dot: "oklch(0.5 0.15 70)" },
     { label: "Delayed", value: kpis.delayed, dot: "oklch(0.48 0.18 25)" },
