@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { todayIso } from "@/lib/task-status";
+import { getAssignableEmployees } from "@/lib/org-data";
 
 export type CopyState = { error: string | null; copied: number };
 
@@ -20,16 +21,28 @@ export async function copyTasks(
   if (taskIds.length === 0) return { error: "Pick at least one task to copy.", copied: 0 };
   if (targetIds.length === 0) return { error: "Pick at least one teammate to copy to.", copied: 0 };
 
+  // The source/target pickers are already scoped to getAssignableEmployees()
+  // in the UI, but taskIds/targetIds still arrive as plain form values --
+  // re-check server-side so a reporting_manager can't copy an arbitrary org
+  // member's tasks to an arbitrary org member outside their reporting chain.
+  const assignableIds = new Set((await getAssignableEmployees(appUser)).map((e) => e.id));
+  if (!targetIds.every((id) => assignableIds.has(id))) {
+    return { error: "You are not allowed to assign tasks to that person.", copied: 0 };
+  }
+
   const supabase = await createClient();
   const { data: sourceTasks, error: fetchError } = await supabase
     .from("tasks")
     .select(
-      "task_name, description, is_recurring, recurrence_kind, recurrence_interval, start_date, end_date, reminder_enabled"
+      "assignee_id, task_name, description, is_recurring, recurrence_kind, recurrence_interval, start_date, end_date, reminder_enabled"
     )
     .in("id", taskIds);
   if (fetchError) return { error: fetchError.message, copied: 0 };
   if (!sourceTasks || sourceTasks.length === 0) {
     return { error: "Selected tasks not found.", copied: 0 };
+  }
+  if (!sourceTasks.every((t) => t.assignee_id && assignableIds.has(t.assignee_id))) {
+    return { error: "You can only copy tasks within your reporting chain.", copied: 0 };
   }
 
   const today = todayIso();

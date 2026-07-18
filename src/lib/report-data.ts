@@ -90,10 +90,11 @@ function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
 }
 
 /**
- * org-scoped report rows -- for reporting_manager (whole org, matching
- * their existing dashboard scope), master_admin (whole org), and "user"
- * (own tasks only). Scoping beyond org isolation is enforced here in JS
- * since RLS only isolates by org, not by role/assignee.
+ * org-scoped report rows -- master_admin sees the whole org; "user" sees
+ * only their own tasks; reporting_manager sees only tasks assigned to
+ * people in their reporting chain (never the whole org). Scoping beyond
+ * org isolation is enforced here in JS since RLS only isolates by org, not
+ * by role/hierarchy.
  */
 export async function getReportRows(
   appUser: AppUser,
@@ -104,6 +105,14 @@ export async function getReportRows(
   let query = supabase.from("task_instances").select(SELECT).order("due_date", { ascending: false });
   if (appUser.system_role === "user") {
     query = query.eq("assignee_id", appUser.id);
+  } else if (appUser.system_role === "reporting_manager") {
+    const { data: chain, error: chainError } = await supabase.rpc("reporting_chain", {
+      p_manager_id: appUser.id,
+    });
+    if (chainError) throw chainError;
+    const reporteeIds = (chain ?? []).map((m) => m.id);
+    if (reporteeIds.length === 0) return [];
+    query = query.in("assignee_id", reporteeIds);
   }
 
   const { data, error } = await query;

@@ -10,9 +10,13 @@ export default async function BulkCopyPage({
 }) {
   const appUser = await requireRole(["reporting_manager"]);
   const sp = await searchParams;
-  const sourceId = sp.source ?? "";
+  const requestedSourceId = sp.source ?? "";
 
   const employees = await getAssignableEmployees(appUser);
+  // The source picker is already scoped to `employees` in the UI, but the
+  // id still arrives via the URL -- ignore it if it's not actually someone
+  // in this manager's reporting chain, rather than trusting it outright.
+  const sourceId = employees.some((e) => e.id === requestedSourceId) ? requestedSourceId : "";
   const tasks = sourceId ? await getUserActiveTasks(sourceId) : [];
   const targetCandidates = employees.filter((e) => e.id !== sourceId);
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
 import { sendOrgEmail } from "@/lib/email";
 import { fmtDate } from "@/lib/task-status";
+import { getAssignableEmployees } from "@/lib/org-data";
 import type { Enums } from "@/types/database.types";
 
 export type FormState = { error: string | null };
@@ -34,6 +35,15 @@ export async function createTask(
 
   if (!taskName || !assigneeId || !startDate) {
     return { error: "Task name, assignee, and start date are required." };
+  }
+
+  // The assignee picker is already scoped to getAssignableEmployees() in the
+  // UI, but that's client-supplied data -- re-check server-side so a
+  // reporting_manager can't assign work to someone outside their reporting
+  // chain by posting an arbitrary assigneeId.
+  const assignable = await getAssignableEmployees(appUser);
+  if (!assignable.some((e) => e.id === assigneeId)) {
+    return { error: "You are not allowed to assign tasks to that person." };
   }
 
   const supabase = await createClient();
@@ -114,6 +124,19 @@ export async function completeTaskInstance(
   if (!appUser.org_id) return { error: "No organization on this account." };
 
   const supabase = await createClient();
+
+  // Only the assignee can mark their own task complete -- the UI already
+  // hides this form otherwise, but that's client-side; re-check here so a
+  // POST with an arbitrary instanceId can't complete someone else's task.
+  const { data: owned, error: ownerError } = await supabase
+    .from("task_instances")
+    .select("assignee_id")
+    .eq("id", instanceId)
+    .single();
+  if (ownerError || !owned) return { error: "Task instance not found." };
+  if (owned.assignee_id !== appUser.id) {
+    return { error: "Only the assignee can mark this task complete." };
+  }
 
   const ext = file.name.split(".").pop() || "bin";
   const path = `${appUser.org_id}/${instanceId}/${Date.now()}.${ext}`;
@@ -204,11 +227,19 @@ export async function requestDateChange(
   const { data: instanceInfo } = await supabase
     .from("task_instances")
     .select(
-      `due_date, assignee:app_users!task_instances_assignee_id_fkey(full_name),
+      `due_date, assignee_id, assignee:app_users!task_instances_assignee_id_fkey(full_name),
        task:tasks!task_instances_task_id_fkey(task_name, created_by)`
     )
     .eq("id", instanceId)
     .single();
+  if (!instanceInfo) return { error: "Task instance not found.", success: false };
+
+  // Only the assignee can request a date change on their own task -- the UI
+  // already hides this form otherwise, but re-check here since it's a
+  // directly-callable server action.
+  if (instanceInfo.assignee_id !== appUser.id) {
+    return { error: "Only the assignee can request a date change.", success: false };
+  }
 
   const creatorId = instanceInfo?.task?.created_by;
   if (creatorId) {

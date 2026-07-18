@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { canManageAssignee } from "@/lib/authz";
+import { getAssignableEmployees } from "@/lib/org-data";
 
 export type FormState = { error: string | null };
 
@@ -28,6 +30,17 @@ export async function transferTaskInstance(
     .eq("id", instanceId)
     .single();
   if (fetchError || !instance) return { error: "Task instance not found." };
+
+  // RLS only confines this to the caller's org -- a reporting_manager could
+  // otherwise transfer any instance in the org (or to any target), not just
+  // within their own reporting chain.
+  if (!(await canManageAssignee(appUser, instance.assignee_id))) {
+    return { error: "You can only transfer tasks within your reporting chain." };
+  }
+  const assignable = await getAssignableEmployees(appUser);
+  if (!assignable.some((e) => e.id === newAssigneeId)) {
+    return { error: "You are not allowed to assign tasks to that person." };
+  }
 
   const { error: updateError } = await supabase
     .from("task_instances")
@@ -68,13 +81,34 @@ export async function removeTaskInstance(
   const supabase = await createClient();
   const now = new Date().toISOString();
 
+  const { data: instance, error: fetchError } = await supabase
+    .from("task_instances")
+    .select("task_id, assignee_id")
+    .eq("id", instanceId)
+    .single();
+  if (fetchError || !instance) return { error: "Task instance not found." };
+
+  // RLS only confines this to the caller's org -- a reporting_manager could
+  // otherwise remove any task/instance in the org, not just their own
+  // reporting chain's.
+  if (!(await canManageAssignee(appUser, instance.assignee_id))) {
+    return { error: "You can only remove tasks within your reporting chain." };
+  }
+
   if (scope === "task") {
-    const { data: instance, error: fetchError } = await supabase
-      .from("task_instances")
-      .select("task_id")
-      .eq("id", instanceId)
+    if (!instance.task_id) return { error: "Task not found." };
+
+    // A task's instances can have been individually transferred since
+    // creation, so also check against the task's own (original) assignee --
+    // removing the whole task is a bigger blast radius than one instance.
+    const { data: taskRow } = await supabase
+      .from("tasks")
+      .select("assignee_id")
+      .eq("id", instance.task_id)
       .single();
-    if (fetchError || !instance?.task_id) return { error: "Task not found." };
+    if (!taskRow || !(await canManageAssignee(appUser, taskRow.assignee_id))) {
+      return { error: "You can only remove tasks within your reporting chain." };
+    }
 
     const { error: taskError } = await supabase
       .from("tasks")

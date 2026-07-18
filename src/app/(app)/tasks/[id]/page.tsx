@@ -9,6 +9,7 @@ import { CompleteForm } from "@/components/dashboard/complete-form";
 import { DateChangeForm } from "@/components/dashboard/date-change-form";
 import { ManagerActions } from "@/components/dashboard/manager-actions";
 import { getAssignableEmployees } from "@/lib/org-data";
+import { canManageAssignee } from "@/lib/authz";
 import type { DashboardInstance } from "@/lib/dashboard-data";
 
 export default async function TaskDetailPage({
@@ -33,6 +34,13 @@ export default async function TaskDetailPage({
     .single();
 
   if (error || !data || !data.task || !data.assignee) notFound();
+
+  // RLS only confines this row to the caller's org -- without this check, a
+  // "user" could view any other org member's task detail (including their
+  // completion proof) by visiting /tasks/<some-other-id>, and a
+  // reporting_manager could view any instance in the org, not just their
+  // reporting chain's.
+  if (!(await canManageAssignee(appUser, data.assignee_id))) notFound();
 
   // PostgREST can't resolve self-referencing embeds on app_users, so the
   // reporting manager's name needs a separate lookup (see dashboard-data.ts).

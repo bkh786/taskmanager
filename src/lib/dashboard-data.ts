@@ -51,8 +51,11 @@ type RawRow = {
 };
 
 /**
- * Fetches all non-removed task instances the caller can see (RLS already
- * scopes by org; "user" role is additionally narrowed to their own here).
+ * Fetches all non-removed task instances the caller can see. RLS only
+ * scopes by org, not by role/hierarchy, so "user" and "reporting_manager"
+ * are additionally narrowed here: a "user" sees only their own tasks, and
+ * a "reporting_manager" sees only tasks assigned to people in their
+ * reporting chain (never the whole org) -- master_admin stays org-wide.
  * Dataset is org-scoped, not paginated -- fine at this app's expected scale.
  */
 export async function getDashboardInstances(
@@ -75,6 +78,14 @@ export async function getDashboardInstances(
 
   if (appUser.system_role === "user") {
     query = query.eq("assignee_id", appUser.id);
+  } else if (appUser.system_role === "reporting_manager") {
+    const { data: chain, error: chainError } = await supabase.rpc("reporting_chain", {
+      p_manager_id: appUser.id,
+    });
+    if (chainError) throw chainError;
+    const reporteeIds = (chain ?? []).map((m) => m.id);
+    if (reporteeIds.length === 0) return [];
+    query = query.in("assignee_id", reporteeIds);
   }
 
   const { data, error } = await query;
