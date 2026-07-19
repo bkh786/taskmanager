@@ -8,7 +8,7 @@ import {
   type BreakdownMode,
 } from "@/lib/dashboard-data";
 import { getOrgProjects } from "@/lib/org-data";
-import { todayIso } from "@/lib/task-status";
+import { todayIso, bucketOf } from "@/lib/task-status";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { BreakdownPanel } from "@/components/dashboard/breakdown-panel";
 import { ViewTabs } from "@/components/dashboard/view-controls";
@@ -46,6 +46,12 @@ export default async function OrgDashboardPage({
 
   const kpis = computeKpis(instances);
   const taskGroups = groupInstancesByTask(instances);
+  // Table view only surfaces the 3 buckets that need action/attention --
+  // delayed, due today, and due within the next 7 days.
+  const tableTaskGroups = taskGroups.filter((t) => {
+    const b = bucketOf(t.representative);
+    return b === "delayed" || b === "today" || b === "week";
+  });
   const uniqueTotal = uniqueTaskCount(instances);
   const breakdownRows = computeBreakdown(instances, breakdownMode);
   const completionPct = kpis.total ? Math.round((kpis.completed / kpis.total) * 100) : 0;
@@ -95,7 +101,7 @@ export default async function OrgDashboardPage({
         <OrgFilterControls filterMode={filterMode} filterValue={filterValue} projects={projects} />
       </div>
 
-      {view === "table" ? <TableView tasks={taskGroups} /> : null}
+      {view === "table" ? <TableView tasks={tableTaskGroups} /> : null}
       {view === "kanban" ? <KanbanView tasks={taskGroups} /> : null}
       {view === "calendar" ? (
         <CalendarView instances={instances} monthIso={monthIso} />

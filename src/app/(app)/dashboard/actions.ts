@@ -32,6 +32,10 @@ export async function createTask(
   const noEnd = formData.get("noEnd") === "on";
   const endDate = noEnd ? null : String(formData.get("endDate") ?? "") || null;
   const reminderEnabled = formData.get("reminderEnabled") === "on";
+  const excludedWeekdays =
+    recurrenceKind === "daily"
+      ? formData.getAll("excludedWeekdays").map((v) => Number(v))
+      : [];
 
   if (!taskName || !assigneeId || !startDate) {
     return { error: "Task name, assignee, and start date are required." };
@@ -59,6 +63,7 @@ export async function createTask(
       is_recurring: isRecurring,
       recurrence_kind: isRecurring ? recurrenceKind : "one_time",
       recurrence_interval: isRecurring ? recurrenceInterval : 1,
+      excluded_weekdays: isRecurring && recurrenceKind === "daily" ? excludedWeekdays : [],
       start_date: startDate,
       end_date: endDate,
       reminder_enabled: reminderEnabled,

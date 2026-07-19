@@ -3,6 +3,7 @@ export const USER_TEMPLATE_COLUMNS = [
   "org_code",
   "full_name",
   "email",
+  "employee_code",
   "password",
   "role",
   "project",
@@ -15,6 +16,7 @@ export function buildUserTemplateRow(orgCode: string) {
     org_code: orgCode,
     full_name: "Jordan Blake",
     email: "jordan.blake@acme.com",
+    employee_code: "EMP-1042",
     password: "ChangeMe123",
     role: "user",
     project: "Website Revamp",
@@ -25,7 +27,7 @@ export function buildUserTemplateRow(orgCode: string) {
 
 export const USER_TEMPLATE_NOTES = [
   "org_code: required — must match the organization code shown above. Do not change it.",
-  "full_name, email, password: required. Password must be at least 8 characters.",
+  "full_name, email, employee_code, password: required. Password must be at least 8 characters.",
   "role: master_admin, reporting_manager, or user.",
   "project, designation: optional — must exactly match an existing name in User Management, or the row is skipped.",
   "reports_to_email: optional — the email of an existing user in this organization.",

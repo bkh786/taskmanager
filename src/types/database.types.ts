@@ -21,6 +21,7 @@ export type Database = {
           date_of_joining: string | null
           designation_id: string | null
           email: string
+          employee_code: string
           full_name: string
           id: string
           is_active: boolean | null
@@ -37,6 +38,7 @@ export type Database = {
           date_of_joining?: string | null
           designation_id?: string | null
           email: string
+          employee_code: string
           full_name: string
           id: string
           is_active?: boolean | null
@@ -53,6 +55,7 @@ export type Database = {
           date_of_joining?: string | null
           designation_id?: string | null
           email?: string
+          employee_code?: string
           full_name?: string
           id?: string
           is_active?: boolean | null
@@ -460,6 +463,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_date: string | null
+          excluded_weekdays: number[]
           id: string
           is_active: boolean | null
           is_recurring: boolean | null
@@ -476,6 +480,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          excluded_weekdays?: number[]
           id?: string
           is_active?: boolean | null
           is_recurring?: boolean | null
@@ -494,6 +499,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          excluded_weekdays?: number[]
           id?: string
           is_active?: boolean | null
           is_recurring?: boolean | null
@@ -606,6 +612,7 @@ export type Database = {
           date_of_joining: string | null
           designation_id: string | null
           email: string
+          employee_code: string
           full_name: string
           id: string
           is_active: boolean | null
@@ -633,6 +640,7 @@ export type Database = {
         Returns: {
           designation_id: string
           email: string
+          employee_code: string
           full_name: string
           id: string
           is_active: boolean

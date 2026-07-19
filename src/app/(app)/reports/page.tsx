@@ -1,8 +1,14 @@
 import { requireRole } from "@/lib/auth";
-import { getReportRows, type ReportFilters as Filters } from "@/lib/report-data";
+import {
+  getReportRows,
+  resolveReportRange,
+  type ReportFilters as Filters,
+} from "@/lib/report-data";
+import { getAttachmentSignedUrls } from "@/lib/attachments";
 import { ExportButton } from "@/components/reports/export-button";
 import { ReportTable } from "@/components/reports/report-table";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { fmtDate } from "@/lib/task-status";
 
 export default async function ReportsPage({
   searchParams,
@@ -16,9 +22,20 @@ export default async function ReportsPage({
   const dateTo = sp.dateTo ?? "";
   const months = sp.months ? sp.months.split(",").filter(Boolean) : [];
   const filters: Filters = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, months };
+  const isDefaultView = !dateFrom && !dateTo && months.length === 0;
 
   const rows = await getReportRows(appUser, filters);
+  const effectiveRange = resolveReportRange(filters);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const signedUrls = await getAttachmentSignedUrls(
+    rows.map((r) => r.evidencePath).filter(Boolean)
+  );
+  const attachmentUrls = Object.fromEntries(
+    rows
+      .filter((r) => r.evidencePath && signedUrls.has(r.evidencePath))
+      .map((r) => [r.instanceId, signedUrls.get(r.evidencePath)!])
+  );
 
   return (
     <div>
@@ -29,17 +46,22 @@ export default async function ReportsPage({
             {appUser.system_role === "user"
               ? "Your own tasks — one row per instance"
               : "Schema-matched task data — one row per instance"}
-            . Future tasks are excluded.
+            . Showing {fmtDate(effectiveRange.from)} – {fmtDate(effectiveRange.to)}
+            {isDefaultView ? " (current month, default)" : ""}.
           </div>
         </div>
         <ExportButton rows={rows} appUrl={appUrl} />
       </div>
 
       <div className="mb-4">
-        <ReportFilters dateFrom={dateFrom} dateTo={dateTo} months={months} />
+        <ReportFilters
+          dateFrom={dateFrom || effectiveRange.from}
+          dateTo={dateTo || effectiveRange.to}
+          months={months}
+        />
       </div>
 
-      <ReportTable rows={rows} />
+      <ReportTable rows={rows} attachmentUrls={attachmentUrls} />
     </div>
   );
 }

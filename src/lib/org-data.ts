@@ -6,6 +6,7 @@ export type Employee = {
   id: string;
   full_name: string;
   email: string;
+  employee_code: string;
   system_role: AppUser["system_role"];
   project_id: string | null;
   project_name: string | null;
@@ -42,6 +43,7 @@ export async function getAssignableEmployees(
         id: r.id,
         full_name: r.full_name,
         email: r.email,
+        employee_code: r.employee_code,
         system_role: r.system_role,
         project_id: r.project_id,
         project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
@@ -56,7 +58,7 @@ export async function getAssignableEmployees(
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .eq("is_active", true)
@@ -68,6 +70,7 @@ export async function getAssignableEmployees(
     id: r.id,
     full_name: r.full_name,
     email: r.email,
+    employee_code: r.employee_code,
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
@@ -104,6 +107,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
       id: r.id,
       full_name: r.full_name,
       email: r.email,
+      employee_code: r.employee_code,
       system_role: r.system_role,
       project_id: r.project_id,
       project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
@@ -116,7 +120,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .order("full_name");
@@ -126,6 +130,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     id: r.id,
     full_name: r.full_name,
     email: r.email,
+    employee_code: r.employee_code,
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
@@ -139,7 +144,9 @@ export async function getOrgManagers(orgId: string): Promise<Employee[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("app_users")
-    .select("id, full_name, email, system_role, project_id, designation_id, is_active, reports_to")
+    .select(
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to"
+    )
     .eq("org_id", orgId)
     .eq("system_role", "reporting_manager")
     .eq("is_active", true)

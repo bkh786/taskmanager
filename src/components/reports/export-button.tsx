@@ -23,7 +23,7 @@ export function ExportButton({
       "Completion Time": r.completedTime,
       "Delay (days)": r.delayInDays,
       Status: r.status,
-      "Completion Evidence": r.evidencePath ? `${appUrl}/tasks/${r.instanceId}` : "",
+      "Supporting Document": r.evidencePath ? `${appUrl}/tasks/${r.instanceId}` : "",
       Comment: r.comment,
       "Assignee Name": r.assigneeName,
       Designation: r.designation,

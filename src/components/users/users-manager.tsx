@@ -73,7 +73,7 @@ export function UsersManager({
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-table-head-bg">
-              {["Name", "Email", "Role", "Project", ""].map((h) => (
+              {["Name", "Employee Code", "Email", "Role", "Project", ""].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase border-b border-panel-border"
@@ -86,7 +86,7 @@ export function UsersManager({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[13px] text-text-faint">
+                <td colSpan={6} className="px-4 py-6 text-center text-[13px] text-text-faint">
                   No users yet.
                 </td>
               </tr>
@@ -100,6 +100,9 @@ export function UsersManager({
                         (inactive)
                       </span>
                     ) : null}
+                  </td>
+                  <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
+                    {u.employee_code}
                   </td>
                   <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
                     {u.email}

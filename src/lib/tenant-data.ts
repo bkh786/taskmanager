@@ -115,7 +115,7 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
   const { data, error } = await admin
     .from("app_users")
     .select(
-      "id, full_name, email, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
     )
     .eq("org_id", orgId)
     .order("full_name");
@@ -124,6 +124,7 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
     id: r.id,
     full_name: r.full_name,
     email: r.email,
+    employee_code: r.employee_code,
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
@@ -137,7 +138,9 @@ export async function getTenantManagers(orgId: string): Promise<Employee[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("app_users")
-    .select("id, full_name, email, system_role, project_id, designation_id, is_active, reports_to")
+    .select(
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to"
+    )
     .eq("org_id", orgId)
     .eq("system_role", "reporting_manager")
     .eq("is_active", true)

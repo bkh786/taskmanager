@@ -24,6 +24,7 @@ type Row = {
   org_code?: unknown;
   full_name?: unknown;
   email?: unknown;
+  employee_code?: unknown;
   password?: unknown;
   role?: unknown;
   project?: unknown;
@@ -91,9 +92,10 @@ export async function bulkCreateUsers(
 
     const fullName = String(row.full_name ?? "").trim();
     const email = String(row.email ?? "").trim().toLowerCase();
+    const employeeCode = String(row.employee_code ?? "").trim();
     const password = String(row.password ?? "");
-    if (!fullName || !email || !password) {
-      skipped.push({ row: rowNum, reason: "Missing full_name, email, or password." });
+    if (!fullName || !email || !employeeCode || !password) {
+      skipped.push({ row: rowNum, reason: "Missing full_name, email, employee_code, or password." });
       continue;
     }
     if (password.length < 8) {
@@ -162,6 +164,7 @@ export async function bulkCreateUsers(
       system_role: roleRaw,
       full_name: fullName,
       email,
+      employee_code: employeeCode,
       project_id: projectId ?? null,
       designation_id: designationId ?? null,
       reports_to: reportsToId ?? null,

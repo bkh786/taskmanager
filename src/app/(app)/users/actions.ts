@@ -26,14 +26,15 @@ export async function createOrReplaceUser(
 
   const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const employeeCode = String(formData.get("employeeCode") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const role = String(formData.get("role") ?? "user") as AppUser["system_role"];
   const mode = String(formData.get("mode") ?? "new_hire"); // "new_hire" | "replacing"
   const replacingUserId = String(formData.get("replacingUserId") ?? "");
   const reportsTo = String(formData.get("reportsTo") ?? "") || null;
 
-  if (!fullName || !email || !password) {
-    return { error: "Name, email, and a default password are required." };
+  if (!fullName || !email || !password || !employeeCode) {
+    return { error: "Name, email, employee code, and a default password are required." };
   }
   if (password.length < 8) {
     return { error: "Default password must be at least 8 characters." };
@@ -65,6 +66,7 @@ export async function createOrReplaceUser(
     system_role: role,
     full_name: fullName,
     email,
+    employee_code: employeeCode,
     reports_to: reportsTo,
     created_by: appUser.id,
     replaced_user_id: mode === "replacing" ? replacingUserId : null,
@@ -164,14 +166,15 @@ export async function updateUser(
 
   const targetId = String(formData.get("userId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
+  const employeeCode = String(formData.get("employeeCode") ?? "").trim();
   const projectId = String(formData.get("projectId") ?? "") || null;
   const designationId = String(formData.get("designationId") ?? "") || null;
   const isActive = formData.get("isActive") === "on";
   const roleInput = formData.get("role");
   const reportsToInput = formData.get("reportsTo");
 
-  if (!targetId || !fullName) {
-    return { error: "Name is required." };
+  if (!targetId || !fullName || !employeeCode) {
+    return { error: "Name and employee code are required." };
   }
 
   // platform_owner has no org_id of their own, so app_users_update's RLS
@@ -192,6 +195,7 @@ export async function updateUser(
 
   const update: {
     full_name: string;
+    employee_code: string;
     project_id: string | null;
     designation_id: string | null;
     is_active: boolean;
@@ -199,6 +203,7 @@ export async function updateUser(
     reports_to?: string | null;
   } = {
     full_name: fullName,
+    employee_code: employeeCode,
     project_id: projectId,
     designation_id: designationId,
     is_active: isActive,

@@ -31,6 +31,13 @@ export type ReportFilters = {
   months?: string[];
 };
 
+/** First-of-current-month through today -- the default report window so an
+ * unfiltered visit doesn't scan the org's entire task history. */
+export function currentMonthRange(): { from: string; to: string } {
+  const today = todayIso();
+  return { from: `${today.slice(0, 7)}-01`, to: today };
+}
+
 type RawRow = {
   id: string;
   created_at: string | null;
@@ -76,17 +83,39 @@ function mapRow(r: RawRow, orgName: string): ReportRow {
   };
 }
 
-function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
-  const dateTo = filters.dateTo && filters.dateTo < todayIso() ? filters.dateTo : todayIso();
-  const dateFrom = filters.dateFrom ?? null;
-  const months = filters.months && filters.months.length > 0 ? new Set(filters.months) : null;
+function endOfMonthIso(yyyyMM: string): string {
+  const [y, m] = yyyyMM.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate(); // day 0 of next month = last day of this one
+  return `${yyyyMM}-${String(lastDay).padStart(2, "0")}`;
+}
 
-  return rows.filter((r) => {
-    if (r.dueDate > dateTo) return false; // future tasks are never included
-    if (dateFrom && r.dueDate < dateFrom) return false;
-    if (months && !months.has(r.dueDate.slice(0, 7))) return false;
-    return true;
-  });
+/** Resolves the effective due-date bounds for a query -- always non-future,
+ * defaulting to the current month when the caller doesn't specify. Selected
+ * months take the date range's place, per spec ("date range must work in
+ * accordance of month selected"); an explicit date range is used otherwise. */
+function resolveRange(filters: ReportFilters): { from: string; to: string } {
+  const today = todayIso();
+  if (filters.months && filters.months.length > 0) {
+    const sorted = [...filters.months].sort();
+    const monthEnd = endOfMonthIso(sorted[sorted.length - 1]);
+    return { from: `${sorted[0]}-01`, to: monthEnd > today ? today : monthEnd };
+  }
+  const defaults = currentMonthRange();
+  const to = filters.dateTo && filters.dateTo < today ? filters.dateTo : today;
+  const from = filters.dateFrom ?? defaults.from;
+  return { from, to };
+}
+
+function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
+  const months = filters.months && filters.months.length > 0 ? new Set(filters.months) : null;
+  if (!months) return rows;
+  return rows.filter((r) => months.has(r.dueDate.slice(0, 7)));
+}
+
+/** Exposes the same range resolution the queries use, so pages can display
+ * or pre-fill the effective (possibly defaulted) filter values. */
+export function resolveReportRange(filters: ReportFilters): { from: string; to: string } {
+  return resolveRange(filters);
 }
 
 /**
@@ -101,8 +130,14 @@ export async function getReportRows(
   filters: ReportFilters = {}
 ): Promise<ReportRow[]> {
   const supabase = await createClient();
+  const range = resolveRange(filters);
 
-  let query = supabase.from("task_instances").select(SELECT).order("due_date", { ascending: false });
+  let query = supabase
+    .from("task_instances")
+    .select(SELECT)
+    .gte("due_date", range.from)
+    .lte("due_date", range.to)
+    .order("due_date", { ascending: false });
   if (appUser.system_role === "user") {
     query = query.eq("assignee_id", appUser.id);
   } else if (appUser.system_role === "reporting_manager") {
@@ -133,9 +168,15 @@ export async function getReportRows(
  */
 export async function getPlatformReportRows(filters: ReportFilters = {}): Promise<ReportRow[]> {
   const admin = createAdminClient();
+  const range = resolveRange(filters);
 
   const [{ data, error }, { data: orgs, error: orgsError }] = await Promise.all([
-    admin.from("task_instances").select(SELECT).order("due_date", { ascending: false }),
+    admin
+      .from("task_instances")
+      .select(SELECT)
+      .gte("due_date", range.from)
+      .lte("due_date", range.to)
+      .order("due_date", { ascending: false }),
     admin.from("organizations").select("id, name"),
   ]);
   if (error) throw error;

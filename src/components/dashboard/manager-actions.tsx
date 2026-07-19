@@ -8,6 +8,7 @@ import {
   type FormState,
 } from "@/app/(app)/tasks/[id]/actions";
 import type { Employee } from "@/lib/org-data";
+import { EditTaskModal, type EditableTask } from "@/components/dashboard/edit-task-modal";
 
 const initialState: FormState = { error: null };
 
@@ -17,12 +18,15 @@ export function ManagerActions({
   instanceId,
   currentAssigneeId,
   employees,
+  task,
 }: {
   instanceId: string;
   currentAssigneeId: string | null;
   employees: Employee[];
+  task: EditableTask;
 }) {
   const [panel, setPanel] = useState<"none" | "transfer" | "delete">("none");
+  const [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
 
   const [transferState, transferAction, transferPending] = useActionState(
@@ -57,6 +61,12 @@ export function ManagerActions({
       {panel === "none" ? (
         <div className="flex gap-2.5">
           <button
+            onClick={() => setEditOpen(true)}
+            className="border border-panel-border bg-panel-bg text-text-body px-3.5 py-2 rounded-md text-[13px] font-semibold cursor-pointer"
+          >
+            Edit task
+          </button>
+          <button
             onClick={() => setPanel("transfer")}
             className="border border-panel-border bg-panel-bg text-text-body px-3.5 py-2 rounded-md text-[13px] font-semibold cursor-pointer"
           >
@@ -69,6 +79,10 @@ export function ManagerActions({
             Remove
           </button>
         </div>
+      ) : null}
+
+      {editOpen ? (
+        <EditTaskModal task={task} onClose={() => setEditOpen(false)} />
       ) : null}
 
       {panel === "transfer" ? (

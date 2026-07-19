@@ -15,6 +15,7 @@ export function ExportUsersButton({ users }: { users: Employee[] }) {
   function download() {
     const data = users.map((u) => ({
       Name: u.full_name,
+      "Employee Code": u.employee_code,
       Email: u.email,
       Role: ROLE_LABELS[u.system_role],
       Project: u.project_name ?? "",

@@ -3,9 +3,11 @@ import { fmtDate } from "@/lib/task-status";
 
 export function ReportTable({
   rows,
+  attachmentUrls,
   showOrganization = false,
 }: {
   rows: ReportRow[];
+  attachmentUrls: Record<string, string>;
   showOrganization?: boolean;
 }) {
   const headers = [
@@ -20,6 +22,7 @@ export function ReportTable({
     "Assignee",
     "Designation",
     "Project",
+    "Supporting Document",
   ];
 
   return (
@@ -84,6 +87,20 @@ export function ReportTable({
                 </td>
                 <td className="px-3.5 py-2.5 text-[12.5px] text-text-body border-b border-row-hover-border whitespace-nowrap">
                   {r.project || "—"}
+                </td>
+                <td className="px-3.5 py-2.5 text-[12.5px] border-b border-row-hover-border whitespace-nowrap">
+                  {r.evidencePath && attachmentUrls[r.instanceId] ? (
+                    <a
+                      href={attachmentUrls[r.instanceId]}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent font-semibold"
+                    >
+                      Preview →
+                    </a>
+                  ) : (
+                    <span className="text-text-faint">—</span>
+                  )}
                 </td>
               </tr>
             ))

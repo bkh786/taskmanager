@@ -93,6 +93,9 @@ export async function createTenant(
     system_role: "master_admin",
     full_name: adminName,
     email: adminEmail,
+    // Tenant provisioning doesn't collect one -- the org admin can set a
+    // real one later via Edit User, same as the backfill for existing rows.
+    employee_code: `ADMIN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     created_by: platformOwner.id,
   });
   if (appUserError) {

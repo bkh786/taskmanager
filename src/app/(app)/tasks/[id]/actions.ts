@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { canManageAssignee } from "@/lib/authz";
 import { getAssignableEmployees } from "@/lib/org-data";
+import { todayIso } from "@/lib/task-status";
+import type { Enums } from "@/types/database.types";
 
 export type FormState = { error: string | null };
 
@@ -144,5 +146,109 @@ export async function removeTaskInstance(
   }
 
   revalidatePath("/dashboard");
+  return { error: null };
+}
+
+export type UpdateTaskState = { error: string | null };
+
+export async function updateTask(
+  _prev: UpdateTaskState,
+  formData: FormData
+): Promise<UpdateTaskState> {
+  const appUser = await requireRole(["master_admin", "reporting_manager"]);
+
+  const taskId = String(formData.get("taskId") ?? "");
+  if (!taskId) return { error: "Missing task." };
+
+  const supabase = await createClient();
+
+  const { data: task, error: fetchError } = await supabase
+    .from("tasks")
+    .select("id, assignee_id, start_date")
+    .eq("id", taskId)
+    .single();
+  if (fetchError || !task) return { error: "Task not found." };
+
+  // RLS only confines this to the caller's org -- a reporting_manager could
+  // otherwise edit any task in the org, not just their reporting chain's.
+  if (!(await canManageAssignee(appUser, task.assignee_id))) {
+    return { error: "You can only edit tasks within your reporting chain." };
+  }
+
+  const taskName = String(formData.get("taskName") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const recurrenceKind = String(
+    formData.get("recurrenceKind") ?? "one_time"
+  ) as Enums<"recurrence_kind">;
+  const isRecurring = recurrenceKind !== "one_time";
+  const recurrenceInterval = Math.max(1, Number(formData.get("recurrenceInterval") ?? 1));
+  const excludedWeekdays =
+    recurrenceKind === "daily"
+      ? formData.getAll("excludedWeekdays").map((v) => Number(v))
+      : [];
+  const noEnd = formData.get("noEnd") === "on";
+  const endDate = noEnd ? null : String(formData.get("endDate") ?? "") || null;
+  const reminderEnabled = formData.get("reminderEnabled") === "on";
+
+  if (!taskName) return { error: "Task name is required." };
+
+  // Instances due today or earlier, or already completed, are already
+  // committed -- an edit can't retroactively cut them off by setting an
+  // end date before them.
+  if (endDate) {
+    const { data: committed } = await supabase
+      .from("task_instances")
+      .select("due_date")
+      .eq("task_id", taskId)
+      .or(`due_date.lte.${todayIso()},status.eq.completed`)
+      .order("due_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const floor = committed?.due_date ?? task.start_date;
+    if (endDate < floor) {
+      return {
+        error: `End date can't be before ${floor} -- an instance for that date already exists.`,
+      };
+    }
+    if (endDate < task.start_date) {
+      return { error: "End date can't be before the start date." };
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("tasks")
+    .update({
+      task_name: taskName,
+      description: description || null,
+      is_recurring: isRecurring,
+      recurrence_kind: recurrenceKind,
+      recurrence_interval: isRecurring ? recurrenceInterval : 1,
+      excluded_weekdays: recurrenceKind === "daily" ? excludedWeekdays : [],
+      end_date: endDate,
+      reminder_enabled: reminderEnabled,
+    })
+    .eq("id", taskId);
+  if (updateError) return { error: updateError.message };
+
+  // Only future, not-yet-completed instances are regenerated to match the
+  // new schedule -- past/overdue/completed instances are left untouched so
+  // editing a task never rewrites history.
+  const { error: pruneError } = await supabase
+    .from("task_instances")
+    .delete()
+    .eq("task_id", taskId)
+    .gt("due_date", todayIso())
+    .neq("status", "completed");
+  if (pruneError) return { error: pruneError.message };
+
+  const { error: genError } = await supabase.rpc("generate_task_instances", {
+    p_task_id: taskId,
+  });
+  if (genError) {
+    return { error: `Task updated, but rescheduling failed: ${genError.message}` };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/tasks/${taskId}`);
   return { error: null };
 }

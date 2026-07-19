@@ -7,10 +7,21 @@ import { todayIso } from "@/lib/task-status";
 
 const initialState = { error: null };
 
+const WEEKDAYS = [
+  { value: 0, label: "Sun" },
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+] as const;
+
 export function CreateTaskModal({ employees }: { employees: Employee[] }) {
   const [open, setOpen] = useState(false);
   const [recurring, setRecurring] = useState(false);
   const [kind, setKind] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [excludedWeekdays, setExcludedWeekdays] = useState<number[]>([]);
   const [noEnd, setNoEnd] = useState(true);
   const [state, formAction, pending] = useActionState(createTask, initialState);
   const submittedOnce = useRef(false);
@@ -166,6 +177,45 @@ export function CreateTaskModal({ employees }: { employees: Employee[] }) {
                     ? "Recurs on the same day-of-month as the start date; clamped to the last day for shorter months."
                     : "Recurs on the same weekday/interval as the start date."}
                 </div>
+
+                {kind === "daily" ? (
+                  <div>
+                    <div className="text-[12.5px] text-text-body mb-1.5">
+                      Skip these days (optional)
+                    </div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {WEEKDAYS.map((w) => {
+                        const checked = excludedWeekdays.includes(w.value);
+                        return (
+                          <label
+                            key={w.value}
+                            className="flex items-center gap-1 text-[11.5px] text-text-body cursor-pointer border border-panel-border rounded-md px-2 py-1"
+                            style={{
+                              background: checked ? "var(--accent-soft)" : "var(--panel-bg)",
+                              borderColor: checked ? "var(--accent)" : "var(--panel-border)",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              name="excludedWeekdays"
+                              value={w.value}
+                              checked={checked}
+                              onChange={(e) =>
+                                setExcludedWeekdays((prev) =>
+                                  e.target.checked
+                                    ? [...prev, w.value]
+                                    : prev.filter((d) => d !== w.value)
+                                )
+                              }
+                              className="sr-only"
+                            />
+                            {w.label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

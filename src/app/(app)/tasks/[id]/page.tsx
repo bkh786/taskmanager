@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCurrentAppUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAttachmentSignedUrl } from "@/lib/attachments";
-import { fmtDate } from "@/lib/task-status";
+import { fmtDate, todayIso } from "@/lib/task-status";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { CompleteForm } from "@/components/dashboard/complete-form";
 import { DateChangeForm } from "@/components/dashboard/date-change-form";
@@ -27,7 +27,10 @@ export default async function TaskDetailPage({
     .select(
       `id, task_id, due_date, status, completed_at, comment, attachment_url,
        assignee_id, original_assignee_id,
-       task:tasks!task_instances_task_id_fkey ( task_name, description, is_recurring, recurrence_kind, reminder_enabled ),
+       task:tasks!task_instances_task_id_fkey (
+         task_name, description, is_recurring, recurrence_kind, recurrence_interval,
+         excluded_weekdays, start_date, end_date, reminder_enabled
+       ),
        assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, reports_to, project:projects(name) )`
     )
     .eq("id", id)
@@ -82,6 +85,24 @@ export default async function TaskDetailPage({
     appUser.system_role === "master_admin" || appUser.system_role === "reporting_manager";
   const attachmentUrl = await getAttachmentSignedUrl(instance.attachment_url);
   const employees = isManager ? await getAssignableEmployees(appUser) : [];
+
+  // The end-date floor: instances due today-or-earlier, or already
+  // completed, are already committed and can't be retroactively cut off by
+  // an edit (mirrors the check in updateTask).
+  let endDateFloor = data.task.start_date;
+  if (isManager && !isRemoved) {
+    const { data: committed } = await supabase
+      .from("task_instances")
+      .select("due_date")
+      .eq("task_id", instance.task_id)
+      .or(`due_date.lte.${todayIso()},status.eq.completed`)
+      .order("due_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (committed?.due_date && committed.due_date > endDateFloor) {
+      endDateFloor = committed.due_date;
+    }
+  }
 
   return (
     <div className="max-w-[920px]">
@@ -141,6 +162,19 @@ export default async function TaskDetailPage({
               instanceId={instance.id}
               currentAssigneeId={instance.assignee_id}
               employees={employees}
+              task={{
+                id: instance.task_id,
+                taskName: data.task.task_name,
+                description: data.task.description,
+                isRecurring: !!data.task.is_recurring,
+                recurrenceKind: data.task.recurrence_kind ?? "one_time",
+                recurrenceInterval: data.task.recurrence_interval ?? 1,
+                excludedWeekdays: data.task.excluded_weekdays ?? [],
+                startDate: data.task.start_date,
+                endDate: data.task.end_date,
+                reminderEnabled: !!data.task.reminder_enabled,
+                endDateFloor,
+              }}
             />
           ) : null}
         </div>
