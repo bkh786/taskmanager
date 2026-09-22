@@ -7,7 +7,7 @@ import {
   uniqueTaskCount,
   type BreakdownMode,
 } from "@/lib/dashboard-data";
-import { getOrgProjects } from "@/lib/org-data";
+import { getOrgProjects, getAssignableEmployees } from "@/lib/org-data";
 import { todayIso, bucketOf } from "@/lib/task-status";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { BreakdownPanel } from "@/components/dashboard/breakdown-panel";
@@ -31,13 +31,16 @@ export default async function OrgDashboardPage({
   const breakdownMode = (sp.breakdown ?? "project") as BreakdownMode;
   const monthIso = sp.month ?? todayIso().slice(0, 7);
 
-  const [allInstances, projects] = await Promise.all([
+  const [allInstances, projects, employees] = await Promise.all([
     getDashboardInstances(appUser),
     appUser.org_id ? getOrgProjects(appUser.org_id) : Promise.resolve([]),
+    getAssignableEmployees(appUser),
   ]);
 
   let instances = allInstances;
-  if (filterMode === "project" && filterValue) {
+  if (filterMode === "employee" && filterValue) {
+    instances = instances.filter((i) => i.assignee_id === filterValue);
+  } else if (filterMode === "project" && filterValue) {
     const projectName = projects.find((p) => p.id === filterValue)?.name;
     instances = instances.filter((i) => i.project_name === projectName);
   } else if (filterMode === "role" && filterValue) {
@@ -98,7 +101,12 @@ export default async function OrgDashboardPage({
 
       <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
         <ViewTabs view={view} />
-        <OrgFilterControls filterMode={filterMode} filterValue={filterValue} projects={projects} />
+        <OrgFilterControls
+          filterMode={filterMode}
+          filterValue={filterValue}
+          projects={projects}
+          employees={employees}
+        />
       </div>
 
       {view === "table" ? <TableView tasks={tableTaskGroups} /> : null}

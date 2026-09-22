@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Employee } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 import { UserModal } from "./user-modal";
@@ -16,6 +16,43 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
 };
 
 type ModalState = { kind: "none" } | { kind: "add" } | { kind: "replace" | "edit"; target: Employee };
+
+type SortKey = "full_name" | "employee_code" | "email" | "role" | "project";
+type SortDir = "asc" | "desc";
+
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "full_name", label: "Name" },
+  { key: "employee_code", label: "Employee Code" },
+  { key: "email", label: "Email" },
+  { key: "role", label: "Role" },
+  { key: "project", label: "Project" },
+];
+
+function sortValue(u: Employee, key: SortKey): string {
+  switch (key) {
+    case "full_name":
+      return u.full_name;
+    case "employee_code":
+      return u.employee_code;
+    case "email":
+      return u.email;
+    case "role":
+      return ROLE_LABELS[u.system_role];
+    case "project":
+      return u.project_name ?? "";
+  }
+}
+
+/** Debounces a fast-changing value so expensive work (filtering) doesn't
+ * re-run on every keystroke. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
 
 export function UsersManager({
   users,
@@ -39,6 +76,39 @@ export function UsersManager({
   orgId?: string;
 }) {
   const [modal, setModal] = useState<ModalState>({ kind: "none" });
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounced(search, 250);
+  const [sortKey, setSortKey] = useState<SortKey>("full_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const visibleUsers = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    const filtered = q
+      ? users.filter((u) =>
+          [u.full_name, u.employee_code, u.email, ROLE_LABELS[u.system_role], u.project_name ?? ""]
+            .join(" ")
+            .toLowerCase()
+            .includes(q)
+        )
+      : users;
+
+    const sorted = [...filtered].sort((a, b) => {
+      const cmp = sortValue(a, sortKey).localeCompare(sortValue(b, sortKey), undefined, {
+        sensitivity: "base",
+      });
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  }, [users, debouncedSearch, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   return (
     <div>
@@ -69,29 +139,49 @@ export function UsersManager({
         orgId={orgId}
       />
 
+      <div className="mb-3.5">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, employee code, email, role, or project…"
+          className="w-full max-w-[420px] px-3 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
+        />
+      </div>
+
       <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-table-head-bg">
-              {["Name", "Employee Code", "Email", "Role", "Project", ""].map((h) => (
+              {COLUMNS.map((c) => (
                 <th
-                  key={h}
+                  key={c.key}
                   className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase border-b border-panel-border"
                 >
-                  {h}
+                  <button
+                    type="button"
+                    onClick={() => toggleSort(c.key)}
+                    className="flex items-center gap-1 border-none bg-transparent p-0 font-bold text-[11.5px] uppercase text-text-sub cursor-pointer"
+                  >
+                    {c.label}
+                    <span className="text-text-faint">
+                      {sortKey === c.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                    </span>
+                  </button>
                 </th>
               ))}
+              <th className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase border-b border-panel-border" />
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {visibleUsers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-6 text-center text-[13px] text-text-faint">
-                  No users yet.
+                  {users.length === 0 ? "No users yet." : "No users match your search."}
                 </td>
               </tr>
             ) : (
-              users.map((u) => (
+              visibleUsers.map((u) => (
                 <tr key={u.id}>
                   <td className="px-4 py-2.5 text-[13.5px] font-semibold text-text-main border-b border-row-hover-border">
                     {u.full_name}
