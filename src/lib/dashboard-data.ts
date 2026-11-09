@@ -66,7 +66,7 @@ export type DashboardData = {
   breakdownRows: BreakdownRow[];
   /** One entry per task (see TaskGroup.representative). Empty for the calendar view. */
   taskGroups: TaskGroup[];
-  /** Table view: only tasks needing attention -- delayed, due today, due within 7 days. */
+  /** Table view: tasks still open -- delayed or pending (due today, this week or later). */
   tableTaskGroups: TaskGroup[];
   calendar: CalendarEntry[];
 };
@@ -259,10 +259,8 @@ export async function loadDashboard(
     opts.view === "calendar" ? fetchCalendar(assigneeIds, opts.monthIso) : Promise.resolve([] as CalendarEntry[]),
   ]);
 
-  const tableTaskGroups = taskGroups.filter((t) => {
-    const b = bucketOf(t.representative);
-    return b === "delayed" || b === "today" || b === "week";
-  });
+  // Table view: only open work -- delayed and pending -- never the completed history.
+  const tableTaskGroups = taskGroups.filter((t) => bucketOf(t.representative) !== "completed");
 
   const { kpis, uniqueTaskTotal } = summary;
   return {

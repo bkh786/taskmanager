@@ -1,3 +1,5 @@
+import { getThoughtOfTheDay } from "@/lib/quote";
+import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { requireRole } from "@/lib/auth";
 import { getPlatformStats } from "@/lib/tenant-data";
 
@@ -16,11 +18,20 @@ const BILLING_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 export default async function PlatformDashboardPage() {
-  await requireRole(["platform_owner"]);
-  const stats = await getPlatformStats();
+  const appUser = await requireRole(["platform_owner"]);
+  const [stats, quote] = await Promise.all([getPlatformStats(), getThoughtOfTheDay()]);
 
   return (
     <div>
+      <WelcomeBanner
+        firstName={appUser.full_name.trim().split(/\s+/)[0]}
+        quote={quote}
+        links={[
+          { href: "/tenants", label: "Tenants" },
+          { href: "/platform-reports", label: "Reports" },
+          { href: "/bulk-upload-users", label: "Bulk Upload Users" },
+        ]}
+      />
       <div className="text-[22px] font-bold text-text-main mb-0.5">Platform Dashboard</div>
       <div className="text-[13.5px] text-text-sub mb-5.5">
         Organization summary and key metrics across every tenant

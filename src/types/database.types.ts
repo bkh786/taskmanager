@@ -117,18 +117,21 @@ export type Database = {
           id: string
           name: string
           org_id: string | null
+          reports_to_designation_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
           org_id?: string | null
+          reports_to_designation_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
           org_id?: string | null
+          reports_to_designation_id?: string | null
         }
         Relationships: [
           {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { updateUser } from "@/app/(app)/users/actions";
-import type { Employee } from "@/lib/org-data";
+import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 
 const initialState = { error: null };
@@ -19,6 +19,7 @@ export function EditUserModal({
   projects,
   designations,
   managers,
+  employees,
   canEditRole,
   allowedRoles,
   orgId,
@@ -26,8 +27,9 @@ export function EditUserModal({
 }: {
   target: Employee;
   projects: { id: string; name: string }[];
-  designations: { id: string; name: string }[];
+  designations: DesignationItem[];
   managers: Employee[];
+  employees: Employee[];
   canEditRole: boolean;
   allowedRoles: AppUser["system_role"][];
   orgId?: string;
@@ -35,6 +37,20 @@ export function EditUserModal({
 }) {
   const [state, formAction, pending] = useActionState(updateUser, initialState);
   const submittedOnce = useRef(false);
+  const [designationId, setDesignationId] = useState(target.designation_id ?? "");
+
+  // Candidate managers: people holding the designation this one reports to.
+  // With no mapping, fall back to all reporting managers.
+  const mappedParent = designations.find((d) => d.id === designationId)?.reports_to_designation_id ?? null;
+  const mappedParentName = designations.find((d) => d.id === mappedParent)?.name ?? null;
+  const candidates = (mappedParent
+    ? employees.filter((e) => e.designation_id === mappedParent && e.is_active)
+    : managers
+  ).filter((m) => m.id !== target.id);
+  // Keep the current manager selectable even if they no longer match.
+  const current = target.reports_to ? employees.find((e) => e.id === target.reports_to) : undefined;
+  const options =
+    current && !candidates.some((c) => c.id === current.id) ? [current, ...candidates] : candidates;
 
   useEffect(() => {
     if (submittedOnce.current && !pending && state.error === null) {
@@ -107,7 +123,8 @@ export function EditUserModal({
             </label>
             <select
               name="designationId"
-              defaultValue={target.designation_id ?? ""}
+              value={designationId}
+              onChange={(e) => setDesignationId(e.target.value)}
               className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
             >
               <option value="">None</option>
@@ -140,21 +157,34 @@ export function EditUserModal({
               <div>
                 <label className="text-xs font-semibold text-text-sub block mb-1.5">
                   Reports to
+                  {mappedParentName ? (
+                    <span className="font-normal text-text-faint"> — {mappedParentName}</span>
+                  ) : null}
                 </label>
                 <select
+                  key={designationId}
                   name="reportsTo"
                   defaultValue={target.reports_to ?? ""}
                   className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
                 >
                   <option value="">No manager</option>
-                  {managers
-                    .filter((m) => m.id !== target.id)
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.full_name}
-                      </option>
-                    ))}
+                  {options.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name}
+                      {m.system_role === "user" ? " (Employee role)" : ""}
+                    </option>
+                  ))}
                 </select>
+                {!mappedParent ? (
+                  <div className="text-[11px] text-text-faint mt-1">
+                    No manager designation is mapped for this designation, so all reporting
+                    managers are listed. Map one under Organization Settings → Project variables.
+                  </div>
+                ) : options.length === 0 ? (
+                  <div className="text-[11px] text-danger mt-1">
+                    Nobody currently holds the {mappedParentName} designation.
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}

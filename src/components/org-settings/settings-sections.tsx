@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgProjects, getOrgDesignations } from "@/lib/org-data";
-import { createProject, createDesignation, renameProject, renameDesignation } from "@/app/(app)/users/actions";
+import { createProject, renameProject } from "@/app/(app)/users/actions";
 import { NameListManager } from "@/components/users/projects-designations-panel";
+import { DesignationManager } from "./designation-manager";
 import { GeneralForm } from "./general-form";
 import { SmtpSettingsForm, type OrgSettingsOrg } from "./settings-form";
 import { EmailOptionsForm } from "./email-options-form";
@@ -69,14 +70,7 @@ export async function VariablesSection({ orgId }: { orgId: string }) {
         placeholder="New project / department name"
         emptyText="No projects yet."
       />
-      <NameListManager
-        title="Designations"
-        items={designations}
-        createAction={createDesignation}
-        renameAction={renameDesignation}
-        placeholder="New designation name"
-        emptyText="No designations yet."
-      />
+      <DesignationManager items={designations} />
       <div className={card}>
         <div className="flex items-center justify-between mb-3.5">
           <div className="text-[14.5px] font-bold text-text-main">Roles</div>

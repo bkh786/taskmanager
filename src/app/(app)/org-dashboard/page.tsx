@@ -1,3 +1,5 @@
+import { getThoughtOfTheDay } from "@/lib/quote";
+import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { requireRole } from "@/lib/auth";
 import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
 import { getOrgProjects, getAssignableEmployees } from "@/lib/org-data";
@@ -24,6 +26,7 @@ export default async function OrgDashboardPage({
   const breakdownMode = (sp.breakdown ?? "project") as BreakdownMode;
   const monthIso = sp.month ?? todayIso().slice(0, 7);
 
+  const quote = await getThoughtOfTheDay();
   const [data, projects, employees] = await Promise.all([
     loadDashboard(appUser, {
       view,
@@ -48,6 +51,15 @@ export default async function OrgDashboardPage({
 
   return (
     <div>
+      <WelcomeBanner
+        firstName={appUser.full_name.trim().split(/\s+/)[0]}
+        quote={quote}
+        links={[
+          { href: "/users", label: "Users" },
+          { href: "/reports", label: "Reports" },
+          { href: "/org-settings", label: "Organization Settings" },
+        ]}
+      />
       <div className="flex items-start justify-between mb-5.5">
         <div>
           <div className="text-[22px] font-bold text-text-main">Organization Dashboard</div>

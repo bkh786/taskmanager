@@ -199,15 +199,27 @@ export async function getOrgProjects(orgId: string) {
   return data ?? [];
 }
 
-export async function getOrgDesignations(orgId: string) {
+/** A designation and (optionally) the designation its holders report to. */
+export type DesignationItem = {
+  id: string;
+  name: string;
+  reports_to_designation_id: string | null;
+};
+
+export async function getOrgDesignations(orgId: string): Promise<DesignationItem[]> {
   const supabase = await createClient();
+  // select("*"): keeps working before the hierarchy column has been added.
   const { data, error } = await supabase
     .from("designations")
-    .select("id, name")
+    .select("*")
     .eq("org_id", orgId)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    reports_to_designation_id: d.reports_to_designation_id ?? null,
+  }));
 }
 
 export type SourceTask = {

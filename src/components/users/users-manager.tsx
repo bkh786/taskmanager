@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Employee } from "@/lib/org-data";
+import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 import { UserModal } from "./user-modal";
 import { EditUserModal } from "./edit-user-modal";
@@ -83,7 +83,7 @@ export function UsersManager({
   users: Employee[];
   managers: Employee[];
   projects: { id: string; name: string }[];
-  designations: { id: string; name: string }[];
+  designations: DesignationItem[];
   allowedRoles: AppUser["system_role"][];
   showReportsTo: boolean;
   /** Whether this viewer can create/replace users and add projects/designations. */
@@ -319,6 +319,7 @@ export function UsersManager({
           projects={projects}
           designations={designations}
           managers={managers}
+          employees={users}
           canEditRole={showReportsTo}
           allowedRoles={allowedRoles}
           orgId={orgId}

@@ -185,10 +185,13 @@ export async function createDesignation(
   const { orgId } = ctx;
 
   const name = String(formData.get("name") ?? "").trim();
+  const parentId = String(formData.get("parentId") ?? "") || null;
   if (!name) return { error: "Designation name is required." };
 
   const supabase = ctx.client ?? (await createClient());
-  const { error } = await supabase.from("designations").insert({ org_id: orgId, name });
+  const { error } = await supabase
+    .from("designations")
+    .insert({ org_id: orgId, name, ...(parentId ? { reports_to_designation_id: parentId } : {}) });
   if (error) return { error: error.message };
 
   revalidatePath("/users");
@@ -260,7 +263,11 @@ export async function updateUser(
       update.system_role = role;
     }
     if (reportsToInput !== null) {
-      update.reports_to = String(reportsToInput) || null;
+      const newManager = String(reportsToInput) || null;
+      if (newManager && (await createsReportingLoop(supabase, targetId, newManager))) {
+        return { error: "That would make someone report to themselves (a loop in the hierarchy)." };
+      }
+      update.reports_to = newManager;
     }
   }
 
@@ -304,4 +311,66 @@ export async function renameProject(formData: FormData): Promise<UserFormState> 
 
 export async function renameDesignation(formData: FormData): Promise<UserFormState> {
   return renameOrgItem("designations", "Designation", formData);
+}
+
+/** Maps a designation to the designation its holders report to (null = top of the hierarchy). */
+export async function setDesignationParent(formData: FormData): Promise<UserFormState> {
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
+
+  const id = String(formData.get("id") ?? "");
+  const parentId = String(formData.get("parentId") ?? "") || null;
+  if (!id) return { error: "Designation not found." };
+
+  const supabase = ctx.client ?? (await createClient());
+
+  // No loops: walking up from the chosen parent must never reach this designation.
+  let cursor = parentId;
+  for (let i = 0; cursor && i < 50; i++) {
+    if (cursor === id) return { error: "That would create a loop in the hierarchy." };
+    const { data } = await supabase
+      .from("designations")
+      .select("reports_to_designation_id")
+      .eq("id", cursor)
+      .maybeSingle();
+    cursor = data?.reports_to_designation_id ?? null;
+  }
+
+  const { error } = await supabase
+    .from("designations")
+    .update({ reports_to_designation_id: parentId })
+    .eq("id", id)
+    .eq("org_id", orgId);
+  if (error) {
+    return {
+      error: /column|schema cache/i.test(error.message)
+        ? "Apply the latest database migration (designation hierarchy) first."
+        : error.message,
+    };
+  }
+
+  revalidatePath("/org-settings");
+  revalidatePath("/users");
+  return { error: null };
+}
+
+/** True if making `managerId` the manager of `userId` would put someone above themselves. */
+async function createsReportingLoop(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  managerId: string
+): Promise<boolean> {
+  let cursor: string | null = managerId;
+  for (let i = 0; cursor && i < 100; i++) {
+    if (cursor === userId) return true;
+    const res: { data: { reports_to: string | null } | null } = await supabase
+      .from("app_users")
+      .select("reports_to")
+      .eq("id", cursor)
+      .maybeSingle();
+    cursor = res.data?.reports_to ?? null;
+  }
+  return false;
 }

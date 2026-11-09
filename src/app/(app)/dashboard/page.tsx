@@ -1,3 +1,5 @@
+import { getThoughtOfTheDay } from "@/lib/quote";
+import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
@@ -27,6 +29,7 @@ export default async function DashboardPage({
 
   const isManager = appUser.system_role === "reporting_manager";
 
+  const quote = await getThoughtOfTheDay();
   const [data, employees, projects] = await Promise.all([
     loadDashboard(appUser, {
       view,
@@ -44,6 +47,19 @@ export default async function DashboardPage({
 
   return (
     <div>
+      <WelcomeBanner
+        firstName={appUser.full_name.trim().split(/\s+/)[0]}
+        quote={quote}
+        links={
+          isManager
+            ? [
+                { href: "/users", label: "Users" },
+                { href: "/bulk-copy", label: "Bulk Task Copy" },
+                { href: "/reports", label: "Reports" },
+              ]
+            : [{ href: "/reports", label: "My Reports" }]
+        }
+      />
       <div className="flex items-start justify-between mb-5.5">
         <div>
           <div className="text-[22px] font-bold text-text-main">Dashboard</div>

@@ -170,9 +170,13 @@ export async function getTenantDesignations(orgId: string) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("designations")
-    .select("id, name")
+    .select("*")
     .eq("org_id", orgId)
     .order("name");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((d) => ({
+    id: d.id,
+    name: d.name,
+    reports_to_designation_id: d.reports_to_designation_id ?? null,
+  }));
 }
