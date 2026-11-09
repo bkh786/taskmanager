@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { Sidebar } from "@/components/sidebar";
 import { ThemeControls } from "@/components/theme-controls";
 import { ProfileMenu } from "@/components/profile-menu";
+import { ChatDock } from "@/components/chat/chat-dock";
 
 const ROLE_LABELS = {
   platform_owner: "Platform Owner",
@@ -33,6 +34,9 @@ export default async function AppLayout({
         </div>
         {children}
       </main>
+      {appUser.org_id && appUser.system_role !== "platform_owner" ? (
+        <ChatDock me={{ id: appUser.id, orgId: appUser.org_id }} />
+      ) : null}
     </div>
   );
 }
