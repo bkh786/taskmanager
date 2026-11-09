@@ -320,6 +320,8 @@ export function UsersManager({
         <UserModal
           employees={users}
           managers={managers}
+          projects={projects}
+          designations={designations}
           allowedRoles={allowedRoles}
           showReportsTo={showReportsTo}
           presetTarget={modal.kind === "replace" ? modal.target : null}

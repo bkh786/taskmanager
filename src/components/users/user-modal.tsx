@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createOrReplaceUser } from "@/app/(app)/users/actions";
-import type { Employee } from "@/lib/org-data";
+import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 
 const initialState = { error: null };
@@ -17,6 +17,8 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
 export function UserModal({
   employees,
   managers,
+  projects,
+  designations,
   allowedRoles,
   showReportsTo,
   presetTarget,
@@ -25,6 +27,8 @@ export function UserModal({
 }: {
   employees: Employee[];
   managers: Employee[];
+  projects: { id: string; name: string }[];
+  designations: DesignationItem[];
   allowedRoles: AppUser["system_role"][];
   showReportsTo: boolean;
   presetTarget: Employee | null;
@@ -35,6 +39,25 @@ export function UserModal({
     presetTarget ? "replacing" : "new_hire"
   );
   const [replacingId, setReplacingId] = useState(presetTarget?.id ?? "");
+  const [projectId, setProjectId] = useState(presetTarget?.project_id ?? "");
+  const [designationId, setDesignationId] = useState(presetTarget?.designation_id ?? "");
+
+  // Candidate managers follow the designation hierarchy (a designation can
+  // report to another designation or to a system role); with no mapping, all
+  // reporting managers are listed.
+  const dsg = designations.find((d) => d.id === designationId);
+  const mappedParent = dsg?.reports_to_designation_id ?? null;
+  const mappedRole = dsg?.reports_to_role ?? null;
+  const mappedLabel = mappedParent
+    ? (designations.find((d) => d.id === mappedParent)?.name ?? null)
+    : mappedRole
+      ? ROLE_LABELS[mappedRole]
+      : null;
+  const managerOptions = mappedParent
+    ? employees.filter((e) => e.designation_id === mappedParent && e.is_active)
+    : mappedRole
+      ? employees.filter((e) => e.system_role === mappedRole && e.is_active)
+      : managers;
   const [state, formAction, pending] = useActionState(
     createOrReplaceUser,
     initialState
@@ -104,7 +127,14 @@ export function UserModal({
                 name="replacingUserId"
                 required
                 value={replacingId}
-                onChange={(e) => setReplacingId(e.target.value)}
+                onChange={(e) => {
+                  setReplacingId(e.target.value);
+                  const who = employees.find((x) => x.id === e.target.value);
+                  if (who) {
+                    setProjectId(who.project_id ?? "");
+                    setDesignationId(who.designation_id ?? "");
+                  }
+                }}
                 className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
               >
                 <option value="">Select an employee…</option>
@@ -172,6 +202,42 @@ export function UserModal({
           </div>
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">
+              Project / Department
+            </label>
+            <select
+              name="projectId"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+            >
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-text-sub block mb-1.5">
+              Designation
+            </label>
+            <select
+              name="designationId"
+              value={designationId}
+              onChange={(e) => setDesignationId(e.target.value)}
+              className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+            >
+              <option value="">None</option>
+              {designations.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-text-sub block mb-1.5">
               Role
             </label>
             <select
@@ -191,16 +257,21 @@ export function UserModal({
             <div>
               <label className="text-xs font-semibold text-text-sub block mb-1.5">
                 Reports to (optional)
+                {mappedLabel ? (
+                  <span className="font-normal text-text-faint"> — {mappedLabel}</span>
+                ) : null}
               </label>
               <select
+                key={designationId}
                 name="reportsTo"
                 defaultValue=""
                 className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
               >
                 <option value="">No manager</option>
-                {managers.map((m) => (
+                {managerOptions.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.full_name}
+                    {m.system_role === "user" ? " (Employee role)" : ""}
                   </option>
                 ))}
               </select>

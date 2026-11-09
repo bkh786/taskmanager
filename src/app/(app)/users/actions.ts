@@ -35,6 +35,8 @@ export async function createOrReplaceUser(
   const mode = String(formData.get("mode") ?? "new_hire"); // "new_hire" | "replacing"
   const replacingUserId = String(formData.get("replacingUserId") ?? "");
   const reportsTo = String(formData.get("reportsTo") ?? "") || null;
+  const projectId = String(formData.get("projectId") ?? "") || null;
+  const designationId = String(formData.get("designationId") ?? "") || null;
 
   if (!fullName || !email || !password || !employeeCode) {
     return { error: "Name, email, employee code, and a default password are required." };
@@ -51,6 +53,16 @@ export async function createOrReplaceUser(
 
   const admin = createAdminClient();
   const supabase = ctx.client ?? (await createClient());
+
+  // The chosen project and designation must belong to this organization.
+  if (projectId) {
+    const { data } = await admin.from("projects").select("id").eq("id", projectId).eq("org_id", orgId).maybeSingle();
+    if (!data) return { error: "That project doesn't belong to this organization." };
+  }
+  if (designationId) {
+    const { data } = await admin.from("designations").select("id").eq("id", designationId).eq("org_id", orgId).maybeSingle();
+    if (!data) return { error: "That designation doesn't belong to this organization." };
+  }
 
   // Auth user creation only works via the Admin API (service role) -- there
   // is no RLS-scoped equivalent. Authorization was already checked above.
@@ -71,6 +83,8 @@ export async function createOrReplaceUser(
     email,
     employee_code: employeeCode,
     reports_to: reportsTo,
+    project_id: projectId,
+    designation_id: designationId,
     created_by: appUser.id,
     replaced_user_id: mode === "replacing" ? replacingUserId : null,
   });
