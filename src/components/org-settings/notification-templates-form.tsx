@@ -8,10 +8,26 @@ const initialState: TemplatesFormState = { error: null, success: false };
 
 export type SavedTemplates = Record<
   string,
-  { enabled: boolean; subject: string | null; body: string | null }
+  {
+    enabled: boolean;
+    subject: string | null;
+    body: string | null;
+    cc_l1?: boolean;
+    cc_l2?: boolean;
+    bcc_l1?: boolean;
+    bcc_l2?: boolean;
+  }
 >;
 
-type Draft = { enabled: boolean; subject: string; body: string };
+type Draft = {
+  enabled: boolean;
+  subject: string;
+  body: string;
+  cc_l1: boolean;
+  cc_l2: boolean;
+  bcc_l1: boolean;
+  bcc_l2: boolean;
+};
 
 const input =
   "w-full px-2.5 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main";
@@ -24,6 +40,10 @@ function initialDrafts(saved: SavedTemplates): Record<EmailEventId, Draft> {
       enabled: s ? s.enabled : true,
       subject: s?.subject ?? def.defaultSubject,
       body: s?.body ?? def.defaultBody,
+      cc_l1: s?.cc_l1 ?? false,
+      cc_l2: s?.cc_l2 ?? false,
+      bcc_l1: s?.bcc_l1 ?? false,
+      bcc_l2: s?.bcc_l2 ?? false,
     };
   }
   return out;
@@ -80,8 +100,9 @@ export function NotificationTemplatesForm({
         <div className="text-[12.5px] text-text-sub">
           Choose which emails are sent and edit their wording. Placeholders such as{" "}
           <code className="text-[12px]">{"{{task_name}}"}</code> are filled in automatically.
-          Task creators can also add extra Cc recipients and switch off the completion email on
-          each task.
+          For each email, tick whether the recipient&apos;s reporting managers are copied: L1 is
+          the person they report to, L2 is that person&apos;s manager. Task creators can also add
+          extra Cc recipients and switch off the completion email on each task.
         </div>
       </div>
 
@@ -132,6 +153,37 @@ export function NotificationTemplatesForm({
                     >
                       {isOpen ? "Close" : "Edit wording"}
                     </button>
+                  </div>
+
+                  <div className="mt-2.5 pl-7 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-[12.5px] text-text-body">
+                    {(
+                      [
+                        ["Cc", "cc_l1", "cc_l2"],
+                        ["Bcc", "bcc_l1", "bcc_l2"],
+                      ] as const
+                    ).map(([title, l1, l2]) => (
+                      <div key={title} className="flex items-center gap-3">
+                        <span className="font-semibold text-text-sub">{title}:</span>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={`${l1}_${def.id}`}
+                            checked={d[l1]}
+                            onChange={(e) => patch(def.id, { [l1]: e.target.checked })}
+                          />
+                          L1 reporting manager
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={`${l2}_${def.id}`}
+                            checked={d[l2]}
+                            onChange={(e) => patch(def.id, { [l2]: e.target.checked })}
+                          />
+                          L2 reporting manager
+                        </label>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Always rendered so the values are submitted even while collapsed. */}

@@ -39,7 +39,7 @@ export function ThemeControls() {
   }
 
   return (
-    <div className="flex items-center gap-3.5 mb-4.5">
+    <div className="flex items-center gap-3.5">
       <span className="text-[11.5px] font-semibold text-text-sub">Theme</span>
       <div className="flex gap-1.5">
         {THEMES.map((t) => (

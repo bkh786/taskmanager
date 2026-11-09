@@ -263,6 +263,34 @@ export async function createPasswordLink(email: string): Promise<string | null> 
   return `${appBaseUrl()}/auth/confirm?token_hash=${encodeURIComponent(hash)}&type=recovery`;
 }
 
+/** The recipient's reporting managers' emails: L1 (direct) and L2 (their manager's manager). */
+async function managerEmails(orgId: string, toEmail: string): Promise<{ l1?: string; l2?: string }> {
+  const admin = createAdminClient();
+  const { data: person } = await admin
+    .from("app_users")
+    .select("reports_to")
+    .eq("org_id", orgId)
+    .eq("email", toEmail)
+    .maybeSingle();
+  if (!person?.reports_to) return {};
+  const { data: l1 } = await admin
+    .from("app_users")
+    .select("email, reports_to, is_active")
+    .eq("id", person.reports_to)
+    .maybeSingle();
+  if (!l1) return {};
+  const out: { l1?: string; l2?: string } = l1.is_active === false ? {} : { l1: l1.email.toLowerCase() };
+  if (l1.reports_to) {
+    const { data: l2 } = await admin
+      .from("app_users")
+      .select("email, is_active")
+      .eq("id", l1.reports_to)
+      .maybeSingle();
+    if (l2 && l2.is_active !== false) out.l2 = l2.email.toLowerCase();
+  }
+  return out;
+}
+
 /**
  * Sends one of the app's emails using the org's template (or the built-in
  * default) and SMTP. Respects the per-event on/off switch, adds the org-wide
@@ -286,7 +314,7 @@ export async function sendOrgEvent(opts: {
     const admin = createAdminClient();
     const { data: tpl } = await admin
       .from("org_email_templates")
-      .select("enabled, subject, body")
+      .select("*")
       .eq("org_id", cfg.id)
       .eq("event", opts.event)
       .maybeSingle();
@@ -323,12 +351,26 @@ export async function sendOrgEvent(opts: {
     if (cfg.smtp_cc_enabled) parseEmailList(cfg.smtp_cc).forEach((e) => cc.add(e));
     (opts.extraCc ?? []).forEach((e) => isValidEmail(e) && cc.add(e.toLowerCase()));
     cc.delete(opts.to.toLowerCase());
-    const bcc = cfg.smtp_bcc_enabled ? parseEmailList(cfg.smtp_bcc) : [];
+    const bcc = new Set<string>(cfg.smtp_bcc_enabled ? parseEmailList(cfg.smtp_bcc) : []);
+
+    // Per-notification copies to the recipient's reporting managers (L1 = who
+    // they report to, L2 = that person's manager).
+    const t = tpl as { cc_l1?: boolean; cc_l2?: boolean; bcc_l1?: boolean; bcc_l2?: boolean } | null;
+    if (t && (t.cc_l1 || t.cc_l2 || t.bcc_l1 || t.bcc_l2)) {
+      const mgr = await managerEmails(cfg.id, opts.to);
+      if (t.cc_l1 && mgr.l1) cc.add(mgr.l1);
+      if (t.cc_l2 && mgr.l2) cc.add(mgr.l2);
+      if (t.bcc_l1 && mgr.l1) bcc.add(mgr.l1);
+      if (t.bcc_l2 && mgr.l2) bcc.add(mgr.l2);
+      cc.delete(opts.to.toLowerCase());
+    }
+    for (const c of cc) bcc.delete(c);
+    bcc.delete(opts.to.toLowerCase());
 
     return await sendOrgEmail(cfg, {
       to: opts.to,
       cc: [...cc],
-      bcc,
+      bcc: [...bcc],
       subject: renderSubject(subjectTpl, vars),
       html: renderBodyHtml(bodyTpl, vars, cfg.email_signature),
       text: renderBodyText(bodyTpl, vars, cfg.email_signature),

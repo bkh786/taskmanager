@@ -272,3 +272,36 @@ export async function updateUser(
   if (orgId) revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }
+
+async function renameOrgItem(
+  table: "projects" | "designations",
+  label: string,
+  formData: FormData
+): Promise<UserFormState> {
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error };
+  const { orgId } = ctx;
+
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) return { error: `${label} not found.` };
+  if (!name) return { error: `${label} name is required.` };
+
+  const supabase = ctx.client ?? (await createClient());
+  const { error } = await supabase.from(table).update({ name }).eq("id", id).eq("org_id", orgId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/users");
+  revalidatePath("/org-settings");
+  revalidatePath(`/tenants/${orgId}`);
+  return { error: null };
+}
+
+export async function renameProject(formData: FormData): Promise<UserFormState> {
+  return renameOrgItem("projects", "Project", formData);
+}
+
+export async function renameDesignation(formData: FormData): Promise<UserFormState> {
+  return renameOrgItem("designations", "Designation", formData);
+}

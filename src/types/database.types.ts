@@ -221,6 +221,10 @@ export type Database = {
       org_email_templates: {
         Row: {
           body: string | null
+          cc_l1: boolean
+          cc_l2: boolean
+          bcc_l1: boolean
+          bcc_l2: boolean
           enabled: boolean
           event: string
           org_id: string
@@ -229,6 +233,10 @@ export type Database = {
         }
         Insert: {
           body?: string | null
+          cc_l1?: boolean
+          cc_l2?: boolean
+          bcc_l1?: boolean
+          bcc_l2?: boolean
           enabled?: boolean
           event: string
           org_id: string
@@ -279,6 +287,7 @@ export type Database = {
           smtp_cc_enabled: boolean
           smtp_from_name: string | null
           smtp_secure: string
+          timezone: string
         }
         Insert: {
           auto_deactivate_date?: string | null
@@ -305,6 +314,7 @@ export type Database = {
           smtp_cc_enabled?: boolean
           smtp_from_name?: string | null
           smtp_secure?: string
+          timezone?: string
         }
         Update: {
           auto_deactivate_date?: string | null
@@ -331,6 +341,7 @@ export type Database = {
           smtp_cc_enabled?: boolean
           smtp_from_name?: string | null
           smtp_secure?: string
+          timezone?: string
         }
         Relationships: []
       }

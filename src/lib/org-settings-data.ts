@@ -25,11 +25,19 @@ export async function getSavedTemplates(orgId: string): Promise<SavedTemplates> 
   const admin = createAdminClient();
   const { data } = await admin
     .from("org_email_templates")
-    .select("event, enabled, subject, body")
+    .select("*")
     .eq("org_id", orgId);
   const out: SavedTemplates = {};
   for (const r of data ?? []) {
-    out[r.event] = { enabled: r.enabled, subject: r.subject, body: r.body };
+    out[r.event] = {
+      enabled: r.enabled,
+      subject: r.subject,
+      body: r.body,
+      cc_l1: r.cc_l1 ?? false,
+      cc_l2: r.cc_l2 ?? false,
+      bcc_l1: r.bcc_l1 ?? false,
+      bcc_l2: r.bcc_l2 ?? false,
+    };
   }
   return out;
 }

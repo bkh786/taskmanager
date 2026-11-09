@@ -12,7 +12,12 @@ const SECURE_MODES = ["auto", "starttls", "ssl", "none"];
 
 export type SettingsFormState = { error: string | null; success: boolean };
 
-export async function updateOrgSettings(
+function isMissingColumn(message: string | undefined) {
+  return !!message && /column|schema cache/i.test(message);
+}
+
+/** General: company name and timezone. */
+export async function updateGeneralSettings(
   _prev: SettingsFormState,
   formData: FormData
 ): Promise<SettingsFormState> {
@@ -22,6 +27,49 @@ export async function updateOrgSettings(
   const { orgId } = ctx;
 
   const name = String(formData.get("name") ?? "").trim();
+  const timezone = String(formData.get("timezone") ?? "").trim();
+  if (!name) return { error: "Company name is required.", success: false };
+  if (timezone) {
+    try {
+      new Intl.DateTimeFormat("en", { timeZone: timezone });
+    } catch {
+      return { error: "Pick a valid timezone.", success: false };
+    }
+  }
+
+  const supabase = ctx.client ?? (await createClient());
+  let { error } = await supabase
+    .from("organizations")
+    .update({ name, ...(timezone ? { timezone } : {}) })
+    .eq("id", orgId);
+  if (error && isMissingColumn(error.message) && timezone) {
+    // Database not updated with the timezone column yet: still save the name.
+    ({ error } = await supabase.from("organizations").update({ name }).eq("id", orgId));
+    if (!error) {
+      revalidatePath("/org-settings");
+      return {
+        error: "Company name saved, but the timezone could not be stored: apply the latest database migration first.",
+        success: false,
+      };
+    }
+  }
+  if (error) return { error: error.message, success: false };
+
+  revalidatePath("/org-settings");
+  revalidatePath(`/tenants/${orgId}`);
+  return { error: null, success: true };
+}
+
+/** SMTP connection and sender only. */
+export async function updateSmtpSettings(
+  _prev: SettingsFormState,
+  formData: FormData
+): Promise<SettingsFormState> {
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error, success: false };
+  const { orgId } = ctx;
+
   const smtpHost = String(formData.get("smtpHost") ?? "").trim() || null;
   const smtpPortRaw = String(formData.get("smtpPort") ?? "").trim();
   const smtpPort = smtpPortRaw ? Number(smtpPortRaw) : null;
@@ -30,15 +78,7 @@ export async function updateOrgSettings(
   const smtpFromEmail = String(formData.get("smtpFromEmail") ?? "").trim() || null;
   const smtpFromName = String(formData.get("smtpFromName") ?? "").trim().slice(0, 120) || null;
   const smtpSecure = String(formData.get("smtpSecure") ?? "auto");
-  const reminderTime = String(formData.get("reminderTime") ?? "").trim() || null;
-  const ccEnabled = formData.get("smtpCcEnabled") === "on";
-  const bccEnabled = formData.get("smtpBccEnabled") === "on";
-  const ccList = parseEmailList(String(formData.get("smtpCc") ?? ""));
-  const bccList = parseEmailList(String(formData.get("smtpBcc") ?? ""));
-  const signature =
-    String(formData.get("emailSignature") ?? "").replace(/\r\n/g, "\n").trim().slice(0, 1000) || null;
 
-  if (!name) return { error: "Company name is required.", success: false };
   if (!SECURE_MODES.includes(smtpSecure)) {
     return { error: "Pick a valid encryption mode.", success: false };
   }
@@ -47,12 +87,6 @@ export async function updateOrgSettings(
   }
   if (smtpFromEmail && !isValidEmail(smtpFromEmail)) {
     return { error: "Enter a valid From email address.", success: false };
-  }
-  if (ccEnabled && ccList.length === 0) {
-    return { error: "Add at least one valid Cc address, or untick Enable Cc.", success: false };
-  }
-  if (bccEnabled && bccList.length === 0) {
-    return { error: "Add at least one valid Bcc address, or untick Enable Bcc.", success: false };
   }
   if (smtpHost) {
     try {
@@ -63,27 +97,63 @@ export async function updateOrgSettings(
   }
 
   const supabase = ctx.client ?? (await createClient());
-
   const update: TablesUpdate<"organizations"> = {
-    name,
     smtp_host: smtpHost,
     smtp_port: smtpPort,
     smtp_username: smtpUsername,
     smtp_from_email: smtpFromEmail,
     smtp_from_name: smtpFromName,
     smtp_secure: smtpSecure,
-    smtp_cc_enabled: ccEnabled,
-    smtp_cc: ccList.length ? ccList.join(", ") : null,
-    smtp_bcc_enabled: bccEnabled,
-    smtp_bcc: bccList.length ? bccList.join(", ") : null,
-    email_signature: signature,
-    reminder_time: reminderTime,
   };
-  // Only overwrite the stored password if the admin typed a new one --
-  // the field is rendered blank on load, so an empty submit means "keep it".
+  // Only overwrite the stored password if a new one was typed -- the field is
+  // rendered blank on load, so an empty submit means "keep it".
   if (smtpPasswordRaw) update.smtp_password = smtpPasswordRaw;
 
   const { error } = await supabase.from("organizations").update(update).eq("id", orgId);
+  if (error) return { error: error.message, success: false };
+
+  revalidatePath("/org-settings");
+  revalidatePath(`/tenants/${orgId}`);
+  return { error: null, success: true };
+}
+
+/** Email options: signature, daily reminder time, and the always-copied addresses. */
+export async function updateEmailOptions(
+  _prev: SettingsFormState,
+  formData: FormData
+): Promise<SettingsFormState> {
+  const appUser = await requireRole(["master_admin", "platform_owner"]);
+  const ctx = resolveOrgContext(appUser, formData);
+  if ("error" in ctx) return { error: ctx.error, success: false };
+  const { orgId } = ctx;
+
+  const reminderTime = String(formData.get("reminderTime") ?? "").trim() || null;
+  const ccEnabled = formData.get("smtpCcEnabled") === "on";
+  const bccEnabled = formData.get("smtpBccEnabled") === "on";
+  const ccList = parseEmailList(String(formData.get("smtpCc") ?? ""));
+  const bccList = parseEmailList(String(formData.get("smtpBcc") ?? ""));
+  const signature =
+    String(formData.get("emailSignature") ?? "").replace(/\r\n/g, "\n").trim().slice(0, 1000) || null;
+
+  if (ccEnabled && ccList.length === 0) {
+    return { error: "Add at least one valid Cc address, or untick it.", success: false };
+  }
+  if (bccEnabled && bccList.length === 0) {
+    return { error: "Add at least one valid Bcc address, or untick it.", success: false };
+  }
+
+  const supabase = ctx.client ?? (await createClient());
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      reminder_time: reminderTime,
+      smtp_cc_enabled: ccEnabled,
+      smtp_cc: ccList.length ? ccList.join(", ") : null,
+      smtp_bcc_enabled: bccEnabled,
+      smtp_bcc: bccList.length ? bccList.join(", ") : null,
+      email_signature: signature,
+    })
+    .eq("id", orgId);
   if (error) return { error: error.message, success: false };
 
   revalidatePath("/org-settings");
@@ -108,7 +178,7 @@ export async function sendTestEmailAction(formData: FormData): Promise<NonNullab
 
   const result = await sendTestEmail(
     {
-      name: String(formData.get("name") ?? stored.name).trim() || stored.name,
+      name: stored.name,
       smtp_host: String(formData.get("smtpHost") ?? "").trim() || null,
       smtp_port: portRaw ? Number(portRaw) : null,
       smtp_username: String(formData.get("smtpUsername") ?? "").trim() || null,
@@ -117,7 +187,7 @@ export async function sendTestEmailAction(formData: FormData): Promise<NonNullab
       smtp_secure: SECURE_MODES.includes(secure) ? secure : "auto",
       smtp_from_email: String(formData.get("smtpFromEmail") ?? "").trim() || null,
       smtp_from_name: String(formData.get("smtpFromName") ?? "").trim() || null,
-      email_signature: String(formData.get("emailSignature") ?? "").replace(/\r\n/g, "\n").trim() || null,
+      email_signature: stored.email_signature,
     },
     appUser.email
   );
@@ -145,6 +215,10 @@ export async function saveEmailTemplates(
       org_id: orgId,
       event: def.id,
       enabled: formData.get(`enabled_${def.id}`) === "on",
+      cc_l1: formData.get(`cc_l1_${def.id}`) === "on",
+      cc_l2: formData.get(`cc_l2_${def.id}`) === "on",
+      bcc_l1: formData.get(`bcc_l1_${def.id}`) === "on",
+      bcc_l2: formData.get(`bcc_l2_${def.id}`) === "on",
       // Identical to the built-in wording (or blank) is stored as null so
       // future improvements to the defaults still reach this org.
       subject: subject && subject !== def.defaultSubject ? subject.slice(0, 300) : null,
@@ -154,9 +228,26 @@ export async function saveEmailTemplates(
   });
 
   const supabase = ctx.client ?? (await createClient());
-  const { error } = await supabase
+  let { error } = await supabase
     .from("org_email_templates")
     .upsert(rows, { onConflict: "org_id,event" });
+  if (error && isMissingColumn(error.message)) {
+    // Database not updated with the Cc/Bcc columns yet: still save the wording.
+    const plain = rows.map(({ cc_l1, cc_l2, bcc_l1, bcc_l2, ...rest }) => {
+      void cc_l1; void cc_l2; void bcc_l1; void bcc_l2;
+      return rest;
+    });
+    ({ error } = await supabase
+      .from("org_email_templates")
+      .upsert(plain, { onConflict: "org_id,event" }));
+    if (!error) {
+      revalidatePath("/org-settings");
+      return {
+        error: "Wording saved, but the Cc/Bcc choices could not be stored: apply the latest database migration first.",
+        success: false,
+      };
+    }
+  }
   if (error) return { error: error.message, success: false };
 
   revalidatePath("/org-settings");

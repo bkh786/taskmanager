@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createProject, createDesignation, type UserFormState } from "@/app/(app)/users/actions";
 
 const initialState: UserFormState = { error: null };
@@ -112,42 +112,113 @@ export function ProjectsDesignationsPanel({
   );
 }
 
-/** A titled list of names with an add form -- used on the Organization Settings tabs. */
+/** A titled list of names with inline rename and an add form -- used on the Organization Settings tabs. */
 export function NameListManager({
   title,
   items,
-  action,
+  createAction,
+  renameAction,
   placeholder,
   emptyText,
+  orgId,
 }: {
   title: string;
   items: { id: string; name: string }[];
-  action: (prev: UserFormState, fd: FormData) => Promise<UserFormState>;
+  createAction: (prev: UserFormState, fd: FormData) => Promise<UserFormState>;
+  renameAction: (fd: FormData) => Promise<UserFormState>;
   placeholder: string;
   emptyText: string;
+  orgId?: string;
 }) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+
+  function save(id: string) {
+    const fd = new FormData();
+    fd.set("id", id);
+    fd.set("name", draft);
+    if (orgId) fd.set("orgId", orgId);
+    startSave(async () => {
+      const res = await renameAction(fd);
+      if (res.error) setError(res.error);
+      else {
+        setError(null);
+        setEditing(null);
+      }
+    });
+  }
+
   return (
     <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
       <div className="flex items-center justify-between mb-3.5">
         <div className="text-[14.5px] font-bold text-text-main">{title}</div>
         <div className="text-[12.5px] text-text-sub">{items.length} total</div>
       </div>
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-col mb-4">
         {items.length === 0 ? (
           <span className="text-[12.5px] text-text-faint">{emptyText}</span>
         ) : (
           items.map((i) => (
-            <span
+            <div
               key={i.id}
-              className="text-[12.5px] font-medium px-2.5 py-1 rounded-md bg-chip-bg text-text-body"
+              className="flex items-center gap-3 py-2 border-b border-row-hover-border last:border-b-0"
             >
-              {i.name}
-            </span>
+              {editing === i.id ? (
+                <>
+                  <input
+                    autoFocus
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") save(i.id);
+                      if (e.key === "Escape") setEditing(null);
+                    }}
+                    className="flex-1 max-w-[360px] px-2.5 py-1.5 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
+                  />
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => save(i.id)}
+                    className="border-none bg-accent text-white px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer disabled:opacity-60"
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(null);
+                      setError(null);
+                    }}
+                    className="border border-panel-border bg-panel-bg text-text-body px-3 py-1.5 rounded-md text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-[13.5px] text-text-main">{i.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditing(i.id);
+                      setDraft(i.name);
+                      setError(null);
+                    }}
+                    className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
           ))
         )}
+        {error ? <div className="text-[12px] text-danger mt-2">{error}</div> : null}
       </div>
       <div className="max-w-[460px]">
-        <AddForm action={action} placeholder={placeholder} />
+        <AddForm action={createAction} placeholder={placeholder} orgId={orgId} />
       </div>
     </div>
   );

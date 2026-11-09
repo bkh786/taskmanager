@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import {
-  updateOrgSettings,
+  updateSmtpSettings,
   sendTestEmailAction,
   type SettingsFormState,
 } from "@/app/(app)/org-settings/actions";
@@ -21,14 +21,14 @@ const input =
 const label = "text-xs font-semibold text-text-sub block mb-1.5";
 const card = "bg-panel-bg border border-panel-border rounded-[10px] p-5.5";
 
-export function SettingsForm({
+export function SmtpSettingsForm({
   org,
   orgId,
 }: {
   org: OrgSettingsOrg;
   orgId?: string;
 }) {
-  const [state, formAction, pending] = useActionState(updateOrgSettings, initialState);
+  const [state, formAction, pending] = useActionState(updateSmtpSettings, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [host, setHost] = useState(org.smtp_host ?? "");
@@ -39,8 +39,6 @@ export function SettingsForm({
     const match = SMTP_PRESETS.find((p) => p.id !== "custom" && p.host === org.smtp_host);
     return match?.id ?? "custom";
   });
-  const [ccEnabled, setCcEnabled] = useState(org.smtp_cc_enabled);
-  const [bccEnabled, setBccEnabled] = useState(org.smtp_bcc_enabled);
 
   const [, startSave] = useTransition();
   const [testing, startTest] = useTransition();
@@ -91,22 +89,11 @@ export function SettingsForm({
       {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
 
       <div className={card}>
-        <div className="text-[14.5px] font-bold text-text-main mb-4">Company profile</div>
-        <label className={label}>Company name</label>
-        <input
-          name="name"
-          required
-          defaultValue={org.name}
-          className={`${input} max-w-[340px] py-2.5`}
-        />
-      </div>
-
-      <div className={card}>
         <div className="text-[14.5px] font-bold text-text-main mb-1">
           Outbound email (SMTP) configuration
         </div>
         <div className="text-[12.5px] text-text-sub mb-4">
-          Every email the app sends (welcome, password reset, task assignment, completion and reminders) goes out from this mail server.
+          Every email the app sends (welcome, password reset, task assignment, completion and reminders) goes out from this mail server. Saved values are kept; the password is never shown again.
         </div>
 
         <div className="text-[11.5px] font-bold text-text-sub uppercase tracking-wide mb-2">
@@ -194,7 +181,7 @@ export function SettingsForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={label}>Sender display name</label>
             <input
@@ -214,89 +201,7 @@ export function SettingsForm({
               className={input}
             />
           </div>
-          <div>
-            <label className={label}>Daily reminder time (UTC)</label>
-            <input
-              type="time"
-              name="reminderTime"
-              defaultValue={(org.reminder_time ?? "09:00").slice(0, 5)}
-              className={input}
-            />
-          </div>
         </div>
-      </div>
-
-      <div className={card}>
-        <div className="text-[14.5px] font-bold text-text-main mb-1">
-          Automated outgoing Cc &amp; Bcc
-        </div>
-        <div className="text-[12.5px] text-text-sub mb-4">
-          Automatically attached to every email sent through this SMTP server.
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div
-            className={`rounded-lg border p-3.5 ${ccEnabled ? "border-accent bg-accent-soft" : "border-panel-border"}`}
-          >
-            <label className="flex items-center gap-2 text-[13px] font-semibold text-text-main cursor-pointer mb-2.5">
-              <input
-                type="checkbox"
-                name="smtpCcEnabled"
-                checked={ccEnabled}
-                onChange={(e) => setCcEnabled(e.target.checked)}
-              />
-              Enable Cc (carbon copy)
-            </label>
-            <label className={label}>Cc recipients (multiple allowed)</label>
-            <input
-              name="smtpCc"
-              defaultValue={org.smtp_cc ?? ""}
-              disabled={!ccEnabled}
-              placeholder="manager@acme.com, hr@acme.com"
-              className={`${input} disabled:opacity-50`}
-            />
-            <div className="text-[11.5px] text-text-faint mt-1.5">
-              Separate addresses with commas, semicolons or spaces.
-            </div>
-          </div>
-          <div
-            className={`rounded-lg border p-3.5 ${bccEnabled ? "border-accent bg-accent-soft" : "border-panel-border"}`}
-          >
-            <label className="flex items-center gap-2 text-[13px] font-semibold text-text-main cursor-pointer mb-2.5">
-              <input
-                type="checkbox"
-                name="smtpBccEnabled"
-                checked={bccEnabled}
-                onChange={(e) => setBccEnabled(e.target.checked)}
-              />
-              Enable Bcc (blind carbon copy)
-            </label>
-            <label className={label}>Bcc recipients (multiple allowed)</label>
-            <input
-              name="smtpBcc"
-              defaultValue={org.smtp_bcc ?? ""}
-              disabled={!bccEnabled}
-              placeholder="audit@acme.com"
-              className={`${input} disabled:opacity-50`}
-            />
-            <div className="text-[11.5px] text-text-faint mt-1.5">
-              Recipients stay hidden from the person receiving the email.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={card}>
-        <div className="text-[14.5px] font-bold text-text-main mb-1">Standard email signature</div>
-        <div className="text-[12.5px] text-text-sub mb-3">
-          Plain text added to the bottom of every email.
-        </div>
-        <textarea
-          name="emailSignature"
-          rows={4}
-          defaultValue={org.email_signature ?? ""}
-          placeholder={"Best regards,\nThe team at " + org.name}
-          className={`${input} resize-y`}
-        />
       </div>
 
       {state.error ? <div className="text-[12.5px] text-danger">{state.error}</div> : null}
@@ -313,7 +218,7 @@ export function SettingsForm({
           disabled={pending}
           className="border-none bg-accent hover:bg-accent-hover text-white px-5 py-2.5 rounded-md text-[13.5px] font-bold cursor-pointer disabled:opacity-60"
         >
-          {pending ? "Saving…" : "Save settings"}
+          {pending ? "Saving…" : "Save SMTP settings"}
         </button>
         <button
           type="button"
