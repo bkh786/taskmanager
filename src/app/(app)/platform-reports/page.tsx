@@ -5,8 +5,7 @@ import {
   type ReportFilters as Filters,
 } from "@/lib/report-data";
 import { getAttachmentSignedUrlsAdmin } from "@/lib/attachments";
-import { ExportButton } from "@/components/reports/export-button";
-import { ReportTable } from "@/components/reports/report-table";
+import { ReportView } from "@/components/reports/report-view";
 import { ReportFilters } from "@/components/reports/report-filters";
 import { getPlatformReportOptions } from "@/lib/report-options";
 import { fmtDate } from "@/lib/task-status";
@@ -59,8 +58,12 @@ export default async function PlatformReportsPage({
   );
 
   return (
-    <div>
-      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
+    <ReportView
+      applied={applied}
+      rows={rows}
+      attachmentUrls={attachmentUrls}
+      appUrl={appUrl} showOrganization
+      heading={
         <div>
           <div className="text-[22px] font-bold text-text-main">Platform Reports</div>
           <div className="text-[13.5px] text-text-sub mt-1">
@@ -70,10 +73,8 @@ export default async function PlatformReportsPage({
               : " Choose filters and click Apply to load data."}
           </div>
         </div>
-        <ExportButton rows={rows} appUrl={appUrl} showOrganization />
-      </div>
-
-      <div className="mb-4">
+      }
+      filters={
         <ReportFilters
           options={options}
           applied={applied}
@@ -90,9 +91,7 @@ export default async function PlatformReportsPage({
             assignedBy: assignedByIds,
           }}
         />
-      </div>
-
-      <ReportTable applied={applied} rows={rows} attachmentUrls={attachmentUrls} showOrganization />
-    </div>
+      }
+    />
   );
 }
