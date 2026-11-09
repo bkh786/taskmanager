@@ -1,15 +1,8 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import {
-  getDashboardInstances,
-  computeKpis,
-  computeBreakdown,
-  groupInstancesByTask,
-  uniqueTaskCount,
-  type BreakdownMode,
-} from "@/lib/dashboard-data";
+import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
 import { getAssignableEmployees, getOrgProjects } from "@/lib/org-data";
-import { todayIso, bucketOf } from "@/lib/task-status";
+import { todayIso } from "@/lib/task-status";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { BreakdownPanel } from "@/components/dashboard/breakdown-panel";
 import { ViewTabs, FilterControls } from "@/components/dashboard/view-controls";
@@ -34,34 +27,20 @@ export default async function DashboardPage({
 
   const isManager = appUser.system_role === "reporting_manager";
 
-  const [allInstances, employees, projects] = await Promise.all([
-    getDashboardInstances(appUser),
+  const [data, employees, projects] = await Promise.all([
+    loadDashboard(appUser, {
+      view,
+      filterMode: isManager ? filterMode : "all",
+      filterValue: isManager ? filterValue : "",
+      breakdownMode,
+      monthIso,
+      withBreakdown: isManager,
+    }),
     isManager ? getAssignableEmployees(appUser) : Promise.resolve([]),
     isManager && appUser.org_id ? getOrgProjects(appUser.org_id) : Promise.resolve([]),
   ]);
-
-  let instances = allInstances;
-  if (isManager) {
-    if (filterMode === "employee" && filterValue) {
-      instances = instances.filter((i) => i.assignee_id === filterValue);
-    } else if (filterMode === "project" && filterValue) {
-      const projectName = projects.find((p) => p.id === filterValue)?.name;
-      instances = instances.filter((i) => i.project_name === projectName);
-    }
-  }
-
-  const kpis = computeKpis(instances);
-  const taskGroups = groupInstancesByTask(instances);
-  // Table view only surfaces the 3 buckets that need action/attention --
-  // delayed, due today, and due within the next 7 days. Completed and
-  // further-out tasks stay out of this view (Kanban/Calendar are unaffected).
-  const tableTaskGroups = taskGroups.filter((t) => {
-    const b = bucketOf(t.representative);
-    return b === "delayed" || b === "today" || b === "week";
-  });
-  const uniqueTotal = uniqueTaskCount(instances);
-  const breakdownRows = isManager ? computeBreakdown(instances, breakdownMode) : [];
-  const completionPct = kpis.total ? Math.round((kpis.completed / kpis.total) * 100) : 0;
+  const { kpis, uniqueTaskTotal, completionPct, breakdownRows, taskGroups, tableTaskGroups, calendar } =
+    data;
 
   return (
     <div>
@@ -91,7 +70,7 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {isManager ? <KpiCards kpis={kpis} uniqueTaskTotal={uniqueTotal} /> : null}
+      {isManager ? <KpiCards kpis={kpis} uniqueTaskTotal={uniqueTaskTotal} /> : null}
 
       {isManager ? (
         <BreakdownPanel
@@ -130,7 +109,7 @@ export default async function DashboardPage({
       {view === "table" ? <TableView tasks={tableTaskGroups} /> : null}
       {view === "kanban" ? <KanbanView tasks={taskGroups} /> : null}
       {view === "calendar" ? (
-        <CalendarView instances={instances} monthIso={monthIso} />
+        <CalendarView instances={calendar} monthIso={monthIso} />
       ) : null}
     </div>
   );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { DashboardInstance } from "@/lib/dashboard-data";
+import type { CalendarEntry } from "@/lib/dashboard-data";
 import { bucketOf, BUCKET_META, todayIso } from "@/lib/task-status";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -8,7 +8,7 @@ export function CalendarView({
   instances,
   monthIso,
 }: {
-  instances: DashboardInstance[];
+  instances: CalendarEntry[];
   /** "YYYY-MM" */
   monthIso: string;
 }) {
@@ -18,7 +18,7 @@ export function CalendarView({
   const startWeekday = firstOfMonth.getDay();
   const today = todayIso();
 
-  const byDay = new Map<string, DashboardInstance[]>();
+  const byDay = new Map<string, CalendarEntry[]>();
   for (const i of instances) {
     if (!i.due_date.startsWith(monthIso)) continue;
     if (!byDay.has(i.due_date)) byDay.set(i.due_date, []);

@@ -26,8 +26,9 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh the session if expired. Required for Server Components, which
-  // cannot write cookies themselves.
-  await supabase.auth.getUser();
+  // cannot write cookies themselves. getClaims validates the token locally
+  // (no Supabase Auth round trip) and refreshes it only when it has expired.
+  await supabase.auth.getClaims();
 
   return response;
 }

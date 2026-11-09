@@ -1,6 +1,5 @@
 "use client";
 
-import * as XLSX from "xlsx";
 import type { ReportRow } from "@/lib/report-data";
 import { fmtDate } from "@/lib/task-status";
 
@@ -13,7 +12,9 @@ export function ExportButton({
   appUrl: string;
   showOrganization?: boolean;
 }) {
-  function download() {
+  async function download() {
+    const XLSX = await import("xlsx");
+
     const data = rows.map((r) => ({
       ...(showOrganization ? { Organization: r.organization } : {}),
       "Task Name": r.taskName,

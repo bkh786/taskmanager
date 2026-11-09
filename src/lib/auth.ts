@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.types";
@@ -15,22 +16,25 @@ export type AppUser = Tables<"app_users">;
  * per the multi-tenancy rule, service role is reserved for the reminder cron
  * and platform-owner admin actions, not routine per-request profile lookups.
  */
-export async function getCurrentAppUser(): Promise<AppUser | null> {
+export const getCurrentAppUser = cache(async (): Promise<AppUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  // getClaims verifies the session token's signature locally (the project
+  // signs with asymmetric keys), so there's no round trip to Supabase Auth --
+  // getUser() made one on every call. The profile lookup below still runs
+  // under RLS, and an account with no app_users row is rejected.
+  const { data: auth } = await supabase.auth.getClaims();
+  const userId = auth?.claims?.sub;
+  if (!userId) return null;
 
   const { data, error } = await supabase
     .from("app_users")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", userId)
     .single();
 
   if (error || !data) return null;
   return data;
-}
+});
 
 export function roleHome(role: AppUser["system_role"]): string {
   switch (role) {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import * as XLSX from "xlsx";
 import { bulkCreateTasks } from "@/app/(app)/bulk-upload/actions";
 import {
   TEMPLATE_COLUMNS,
@@ -11,7 +10,9 @@ import {
 
 const initialState = { error: null, created: 0, skipped: [] };
 
-function downloadTemplate() {
+async function downloadTemplate() {
+    const XLSX = await import("xlsx");
+
   const ws = XLSX.utils.json_to_sheet([TEMPLATE_EXAMPLE_ROW], {
     header: [...TEMPLATE_COLUMNS],
   });

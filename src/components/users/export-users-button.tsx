@@ -1,6 +1,5 @@
 "use client";
 
-import * as XLSX from "xlsx";
 import type { Employee } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 
@@ -12,7 +11,9 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
 };
 
 export function ExportUsersButton({ users }: { users: Employee[] }) {
-  function download() {
+  async function download() {
+    const XLSX = await import("xlsx");
+
     const data = users.map((u) => ({
       Name: u.full_name,
       "Employee Code": u.employee_code,

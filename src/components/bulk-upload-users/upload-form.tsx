@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import * as XLSX from "xlsx";
 import { bulkCreateUsers } from "@/app/(app)/bulk-upload-users/actions";
 import {
   USER_TEMPLATE_COLUMNS,
@@ -13,7 +12,9 @@ const initialState = { error: null, created: 0, skipped: [] };
 
 type Org = { id: string; slug: string; name: string };
 
-function downloadTemplate(orgCode: string) {
+async function downloadTemplate(orgCode: string) {
+    const XLSX = await import("xlsx");
+
   const ws = XLSX.utils.json_to_sheet([buildUserTemplateRow(orgCode)], {
     header: [...USER_TEMPLATE_COLUMNS],
   });

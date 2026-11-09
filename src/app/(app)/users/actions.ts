@@ -98,29 +98,47 @@ export async function createOrReplaceUser(
   if (mode === "replacing" && replacingUserId) {
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: toReassign, error: fetchError } = await supabase
-      .from("task_instances")
-      .select("id, assignee_id")
-      .eq("assignee_id", replacingUserId)
-      .eq("removed", false)
-      .neq("status", "completed")
-      .gte("due_date", today);
-    if (fetchError) return { error: fetchError.message };
+    // Everything the replaced person still has open moves to the new hire.
+    // One bulk update plus one bulk log insert -- not a round trip per task --
+    // reading the affected ids in pages first (the API caps a response at 1,000 rows).
+    const toReassign: { id: string; assignee_id: string | null }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error: fetchError } = await supabase
+        .from("task_instances")
+        .select("id, assignee_id")
+        .eq("assignee_id", replacingUserId)
+        .eq("removed", false)
+        .neq("status", "completed")
+        .gte("due_date", today)
+        .order("id")
+        .range(from, from + 999);
+      if (fetchError) return { error: fetchError.message };
+      toReassign.push(...(data ?? []));
+      if ((data?.length ?? 0) < 1000) break;
+    }
 
-    for (const instance of toReassign ?? []) {
+    if (toReassign.length > 0) {
       const { error: updateError } = await supabase
         .from("task_instances")
         .update({ assignee_id: created.user.id })
-        .eq("id", instance.id);
+        .eq("assignee_id", replacingUserId)
+        .eq("removed", false)
+        .neq("status", "completed")
+        .gte("due_date", today);
       if (updateError) return { error: updateError.message };
 
-      await supabase.from("task_transfer_log").insert({
-        task_instance_id: instance.id,
-        from_user_id: instance.assignee_id,
-        to_user_id: created.user.id,
-        transferred_by: appUser.id,
-        reason: "User replacement",
-      });
+      for (let i = 0; i < toReassign.length; i += 500) {
+        const { error: logError } = await supabase.from("task_transfer_log").insert(
+          toReassign.slice(i, i + 500).map((instance) => ({
+            task_instance_id: instance.id,
+            from_user_id: instance.assignee_id,
+            to_user_id: created.user.id,
+            transferred_by: appUser.id,
+            reason: "User replacement",
+          }))
+        );
+        if (logError) return { error: logError.message };
+      }
     }
 
     await supabase.from("user_replacement_log").insert({

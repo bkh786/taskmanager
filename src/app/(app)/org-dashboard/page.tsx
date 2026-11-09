@@ -1,14 +1,7 @@
 import { requireRole } from "@/lib/auth";
-import {
-  getDashboardInstances,
-  computeKpis,
-  computeBreakdown,
-  groupInstancesByTask,
-  uniqueTaskCount,
-  type BreakdownMode,
-} from "@/lib/dashboard-data";
+import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
 import { getOrgProjects, getAssignableEmployees } from "@/lib/org-data";
-import { todayIso, bucketOf } from "@/lib/task-status";
+import { todayIso } from "@/lib/task-status";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { BreakdownPanel } from "@/components/dashboard/breakdown-panel";
 import { ViewTabs } from "@/components/dashboard/view-controls";
@@ -31,33 +24,27 @@ export default async function OrgDashboardPage({
   const breakdownMode = (sp.breakdown ?? "project") as BreakdownMode;
   const monthIso = sp.month ?? todayIso().slice(0, 7);
 
-  const [allInstances, projects, employees] = await Promise.all([
-    getDashboardInstances(appUser),
+  const [data, projects, employees] = await Promise.all([
+    loadDashboard(appUser, {
+      view,
+      filterMode,
+      filterValue,
+      breakdownMode,
+      monthIso,
+      withBreakdown: true,
+    }),
     appUser.org_id ? getOrgProjects(appUser.org_id) : Promise.resolve([]),
     getAssignableEmployees(appUser),
   ]);
-
-  let instances = allInstances;
-  if (filterMode === "employee" && filterValue) {
-    instances = instances.filter((i) => i.assignee_id === filterValue);
-  } else if (filterMode === "project" && filterValue) {
-    const projectName = projects.find((p) => p.id === filterValue)?.name;
-    instances = instances.filter((i) => i.project_name === projectName);
-  } else if (filterMode === "role" && filterValue) {
-    instances = instances.filter((i) => i.assignee_role === filterValue);
-  }
-
-  const kpis = computeKpis(instances);
-  const taskGroups = groupInstancesByTask(instances);
-  // Table view only surfaces the 3 buckets that need action/attention --
-  // delayed, due today, and due within the next 7 days.
-  const tableTaskGroups = taskGroups.filter((t) => {
-    const b = bucketOf(t.representative);
-    return b === "delayed" || b === "today" || b === "week";
-  });
-  const uniqueTotal = uniqueTaskCount(instances);
-  const breakdownRows = computeBreakdown(instances, breakdownMode);
-  const completionPct = kpis.total ? Math.round((kpis.completed / kpis.total) * 100) : 0;
+  const {
+    kpis,
+    uniqueTaskTotal: uniqueTotal,
+    completionPct,
+    breakdownRows,
+    taskGroups,
+    tableTaskGroups,
+    calendar,
+  } = data;
 
   return (
     <div>
@@ -112,7 +99,7 @@ export default async function OrgDashboardPage({
       {view === "table" ? <TableView tasks={tableTaskGroups} /> : null}
       {view === "kanban" ? <KanbanView tasks={taskGroups} /> : null}
       {view === "calendar" ? (
-        <CalendarView instances={instances} monthIso={monthIso} />
+        <CalendarView instances={calendar} monthIso={monthIso} />
       ) : null}
     </div>
   );

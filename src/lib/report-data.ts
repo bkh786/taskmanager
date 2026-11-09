@@ -55,6 +55,8 @@ type RawRow = {
   } | null;
 };
 
+const PAGE = 1000; // rows per API response
+
 const SELECT = `id, created_at, due_date, completed_at, status, attachment_url, comment,
      task:tasks!task_instances_task_id_fkey ( task_name, org_id ),
      assignee:app_users!task_instances_assignee_id_fkey (
@@ -132,30 +134,40 @@ export async function getReportRows(
   const supabase = await createClient();
   const range = resolveRange(filters);
 
-  let query = supabase
-    .from("task_instances")
-    .select(SELECT)
-    .gte("due_date", range.from)
-    .lte("due_date", range.to)
-    .order("due_date", { ascending: false });
-  if (appUser.system_role === "user") {
-    query = query.eq("assignee_id", appUser.id);
-  } else if (appUser.system_role === "reporting_manager") {
+  let reporteeIds: string[] | null = null;
+  if (appUser.system_role === "reporting_manager") {
     const { data: chain, error: chainError } = await supabase.rpc("reporting_chain", {
       p_manager_id: appUser.id,
     });
     if (chainError) throw chainError;
-    const reporteeIds = (chain ?? []).map((m) => m.id);
+    reporteeIds = (chain ?? []).map((m) => m.id);
     if (reporteeIds.length === 0) return [];
-    query = query.in("assignee_id", reporteeIds);
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
+  const build = () => {
+    let q = supabase
+      .from("task_instances")
+      .select(SELECT)
+      .gte("due_date", range.from)
+      .lte("due_date", range.to)
+      .order("due_date", { ascending: false })
+      .order("id");
+    if (appUser.system_role === "user") q = q.eq("assignee_id", appUser.id);
+    else if (reporteeIds) q = q.in("assignee_id", reporteeIds);
+    return q;
+  };
 
-  const rows = ((data ?? []) as unknown as RawRow[])
-    .filter((r) => r.task && r.assignee)
-    .map((r) => mapRow(r, ""));
+  // The API returns at most 1,000 rows per response and truncates silently, so
+  // read every page -- otherwise a busy month would be cut off mid-report.
+  const raw: RawRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await build().range(from, from + PAGE - 1);
+    if (error) throw error;
+    raw.push(...((data ?? []) as unknown as RawRow[]));
+    if ((data?.length ?? 0) < PAGE) break;
+  }
+
+  const rows = raw.filter((r) => r.task && r.assignee).map((r) => mapRow(r, ""));
 
   return applyFilters(rows, filters);
 }
@@ -170,21 +182,26 @@ export async function getPlatformReportRows(filters: ReportFilters = {}): Promis
   const admin = createAdminClient();
   const range = resolveRange(filters);
 
-  const [{ data, error }, { data: orgs, error: orgsError }] = await Promise.all([
-    admin
+  const raw: RawRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await admin
       .from("task_instances")
       .select(SELECT)
       .gte("due_date", range.from)
       .lte("due_date", range.to)
-      .order("due_date", { ascending: false }),
-    admin.from("organizations").select("id, name"),
-  ]);
-  if (error) throw error;
+      .order("due_date", { ascending: false })
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    raw.push(...((data ?? []) as unknown as RawRow[]));
+    if ((data?.length ?? 0) < PAGE) break;
+  }
+  const { data: orgs, error: orgsError } = await admin.from("organizations").select("id, name");
   if (orgsError) throw orgsError;
 
   const orgNames = new Map((orgs ?? []).map((o) => [o.id, o.name]));
 
-  const rows = ((data ?? []) as unknown as RawRow[])
+  const rows = raw
     .filter((r) => r.task && r.assignee)
     .map((r) => mapRow(r, orgNames.get(r.task!.org_id ?? "") ?? "—"));
 
