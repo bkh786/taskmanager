@@ -148,6 +148,7 @@ export async function getReportRows(
     let q = supabase
       .from("task_instances")
       .select(SELECT)
+      .eq("removed", false)
       .gte("due_date", range.from)
       .lte("due_date", range.to)
       .order("due_date", { ascending: false })
@@ -187,6 +188,7 @@ export async function getPlatformReportRows(filters: ReportFilters = {}): Promis
     const { data, error } = await admin
       .from("task_instances")
       .select(SELECT)
+      .eq("removed", false)
       .gte("due_date", range.from)
       .lte("due_date", range.to)
       .order("due_date", { ascending: false })
