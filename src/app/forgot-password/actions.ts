@@ -41,7 +41,7 @@ export async function requestPasswordReset(
         const link = await createPasswordLink(email);
         if (!link) return;
 
-        const redirectTo = `${appBaseUrl()}/set-password`;
+        const redirectTo = `${appBaseUrl()}/set-password`; // only for the fallback mailer
         if (user.org_id) {
           const result = await sendOrgEvent({
             orgId: user.org_id,

@@ -249,16 +249,18 @@ export async function sendOrgEmail(
   }
 }
 
-/** One-time link that lets a user choose a new password (used by welcome + reset emails). */
+/**
+ * One-time link that lets a user choose a new password (welcome + reset
+ * emails). It points at this app's own /auth/confirm page, which exchanges the
+ * token in the browser -- so it works whatever redirect URLs the Supabase
+ * project allows, and email link-scanners can't consume it by prefetching.
+ */
 export async function createPasswordLink(email: string): Promise<string | null> {
   const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email,
-    options: { redirectTo: `${appBaseUrl()}/set-password` },
-  });
-  if (error || !data?.properties?.action_link) return null;
-  return data.properties.action_link;
+  const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email });
+  const hash = data?.properties?.hashed_token;
+  if (error || !hash) return null;
+  return `${appBaseUrl()}/auth/confirm?token_hash=${encodeURIComponent(hash)}&type=recovery`;
 }
 
 /**
