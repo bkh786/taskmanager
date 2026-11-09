@@ -58,12 +58,15 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
   const nav = navFor(appUser.system_role);
 
   return (
-    <aside className="w-[232px] shrink-0 bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3.5">
+    // Fixed-width slot keeps the page layout stable; the panel inside expands
+    // over the content on hover/keyboard focus.
+    <div className="relative w-[68px] shrink-0">
+    <aside className="group absolute inset-y-0 left-0 z-30 w-[68px] hover:w-[232px] focus-within:w-[232px] overflow-hidden transition-[width] duration-200 bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3.5 hover:shadow-lg">
       <div className="flex items-center gap-2.5 px-2 pb-5 pt-1">
         <div className="w-8 h-8 rounded-[8px] bg-accent text-white flex items-center justify-center font-bold text-[13px] shrink-0">
           TM
         </div>
-        <div className="text-sm font-bold text-text-main">Task Manager</div>
+        <div className="text-sm font-bold text-text-main whitespace-nowrap">Task Manager</div>
       </div>
 
       <nav className="flex flex-col gap-0.5">
@@ -74,16 +77,19 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-md text-[13.5px] font-semibold"
+              title={item.label}
+              className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-md text-[13.5px] font-semibold whitespace-nowrap"
               style={{
                 background: active ? "var(--accent-soft)" : "transparent",
                 color: active ? "var(--accent)" : "var(--text-body)",
               }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-sm"
-                style={{ background: "currentColor", opacity: 0.7 }}
-              />
+                className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center text-[11px] font-bold"
+                style={{ background: "currentColor" }}
+              >
+                <span style={{ color: "var(--sidebar-bg)" }}>{item.label[0]}</span>
+              </span>
               {item.label}
             </Link>
           );
@@ -96,7 +102,7 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
         <div className="w-7 h-7 rounded-full bg-chip-bg text-text-body flex items-center justify-center font-bold text-[11px] shrink-0">
           {initials(appUser.full_name)}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 whitespace-nowrap">
           <div className="text-[12.5px] font-semibold text-text-main truncate">
             {appUser.full_name}
           </div>
@@ -110,12 +116,13 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
         <form action={signOut}>
           <button
             type="submit"
-            className="border-none bg-transparent text-text-faint text-[11px] cursor-pointer"
+            className="border-none bg-transparent text-text-faint text-[11px] cursor-pointer whitespace-nowrap"
           >
             Log out
           </button>
         </form>
       </div>
     </aside>
+    </div>
   );
 }

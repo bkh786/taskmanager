@@ -170,7 +170,7 @@ export function UsersManager({
         />
       </div>
 
-      <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+      <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-table-head-bg">
@@ -191,7 +191,7 @@ export function UsersManager({
                   </button>
                 </th>
               ))}
-              <th className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase border-b border-panel-border" />
+              <th className="sticky right-0 bg-table-head-bg px-4 py-2.5 border-b border-panel-border" />
             </tr>
           </thead>
           <tbody>
@@ -230,18 +230,18 @@ export function UsersManager({
                   <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
                     {u.manager_name ?? "—"}
                   </td>
-                  <td className="px-4 py-2.5 border-b border-row-hover-border text-right">
+                  <td className="sticky right-0 bg-panel-bg px-4 py-2.5 border-b border-row-hover-border text-right">
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => setModal({ kind: "edit", target: u })}
-                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                        className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer whitespace-nowrap"
                       >
                         Edit
                       </button>
                       {canCreate ? (
                         <button
                           onClick={() => setModal({ kind: "replace", target: u })}
-                          className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
+                          className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer whitespace-nowrap"
                         >
                           Replace
                         </button>
