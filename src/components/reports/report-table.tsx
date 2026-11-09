@@ -5,10 +5,12 @@ export function ReportTable({
   rows,
   attachmentUrls,
   showOrganization = false,
+  applied = true,
 }: {
   rows: ReportRow[];
   attachmentUrls: Record<string, string>;
   showOrganization?: boolean;
+  applied?: boolean;
 }) {
   const headers = [
     ...(showOrganization ? ["Organization"] : []),
@@ -47,7 +49,9 @@ export function ReportTable({
                 colSpan={headers.length}
                 className="px-4 py-6 text-center text-[13px] text-text-faint"
               >
-                No task instances match these filters.
+                {applied
+                  ? "No task instances match these filters."
+                  : "Select your filters above and click Apply to load the report."}
               </td>
             </tr>
           ) : (

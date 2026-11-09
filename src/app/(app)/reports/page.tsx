@@ -8,6 +8,7 @@ import { getAttachmentSignedUrls } from "@/lib/attachments";
 import { ExportButton } from "@/components/reports/export-button";
 import { ReportTable } from "@/components/reports/report-table";
 import { ReportFilters } from "@/components/reports/report-filters";
+import { getReportOptions } from "@/lib/report-options";
 import { fmtDate } from "@/lib/task-status";
 
 export default async function ReportsPage({
@@ -21,10 +22,30 @@ export default async function ReportsPage({
   const dateFrom = sp.dateFrom ?? "";
   const dateTo = sp.dateTo ?? "";
   const months = sp.months ? sp.months.split(",").filter(Boolean) : [];
-  const filters: Filters = { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined, months };
+  const list = (k: string) => (sp[k] ? sp[k]!.split(",").filter(Boolean) : []);
+  const applied = sp.applied === "1";
+  const projectIds = list("projects");
+  const designationIds = list("designations");
+  const roles = list("roles");
+  const statuses = list("statuses");
+  const assignedByIds = list("assignedBy");
+  const filters: Filters = {
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    months,
+    projectIds,
+    designationIds,
+    roles,
+    statuses,
+    assignedByIds,
+  };
   const isDefaultView = !dateFrom && !dateTo && months.length === 0;
 
-  const rows = await getReportRows(appUser, filters);
+  // Nothing is loaded until the user picks filters and clicks Apply.
+  const [rows, options] = await Promise.all([
+    applied ? getReportRows(appUser, filters) : Promise.resolve([]),
+    getReportOptions(appUser),
+  ]);
   const effectiveRange = resolveReportRange(filters);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -46,8 +67,10 @@ export default async function ReportsPage({
             {appUser.system_role === "user"
               ? "Your own tasks — one row per instance"
               : "Schema-matched task data — one row per instance"}
-            . Showing {fmtDate(effectiveRange.from)} – {fmtDate(effectiveRange.to)}
-            {isDefaultView ? " (current month, default)" : ""}.
+            .
+            {applied
+              ? ` Showing due dates ${fmtDate(effectiveRange.from)} – ${fmtDate(effectiveRange.to)}${isDefaultView ? " (current month, default)" : ""}.`
+              : " Choose filters and click Apply to load data."}
           </div>
         </div>
         <ExportButton rows={rows} appUrl={appUrl} />
@@ -55,13 +78,24 @@ export default async function ReportsPage({
 
       <div className="mb-4">
         <ReportFilters
-          dateFrom={dateFrom || effectiveRange.from}
-          dateTo={dateTo || effectiveRange.to}
-          months={months}
+          options={options}
+          applied={applied}
+          defaultFrom={effectiveRange.from}
+          defaultTo={effectiveRange.to}
+          initial={{
+            dateFrom: dateFrom || effectiveRange.from,
+            dateTo: dateTo || effectiveRange.to,
+            months,
+            projects: projectIds,
+            designations: designationIds,
+            roles,
+            statuses,
+            assignedBy: assignedByIds,
+          }}
         />
       </div>
 
-      <ReportTable rows={rows} attachmentUrls={attachmentUrls} />
+      <ReportTable applied={applied} rows={rows} attachmentUrls={attachmentUrls} />
     </div>
   );
 }

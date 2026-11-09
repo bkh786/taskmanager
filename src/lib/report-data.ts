@@ -20,6 +20,10 @@ export type ReportRow = {
   project: string;
   organization: string;
   dateOfJoining: string;
+  projectId: string;
+  designationId: string;
+  role: string;
+  assignedById: string;
 };
 
 export type ReportFilters = {
@@ -29,6 +33,12 @@ export type ReportFilters = {
   dateTo?: string;
   /** Restrict to these due-date months, each "YYYY-MM". Empty/omitted = no month restriction. */
   months?: string[];
+  /** Assignee's project / designation / role, task status bucket, and who assigned the task. */
+  projectIds?: string[];
+  designationIds?: string[];
+  roles?: string[];
+  statuses?: string[];
+  assignedByIds?: string[];
 };
 
 /** First-of-current-month through today -- the default report window so an
@@ -46,10 +56,13 @@ type RawRow = {
   status: string | null;
   attachment_url: string | null;
   comment: string | null;
-  task: { task_name: string; org_id: string | null } | null;
+  task: { task_name: string; org_id: string | null; created_by: string | null } | null;
   assignee: {
     full_name: string;
     date_of_joining: string | null;
+    project_id: string | null;
+    designation_id: string | null;
+    system_role: string;
     designation: { name: string } | null;
     project: { name: string } | null;
   } | null;
@@ -58,9 +71,9 @@ type RawRow = {
 const PAGE = 1000; // rows per API response
 
 const SELECT = `id, created_at, due_date, completed_at, status, attachment_url, comment,
-     task:tasks!task_instances_task_id_fkey ( task_name, org_id ),
+     task:tasks!task_instances_task_id_fkey ( task_name, org_id, created_by ),
      assignee:app_users!task_instances_assignee_id_fkey (
-       full_name, date_of_joining,
+       full_name, date_of_joining, project_id, designation_id, system_role,
        designation:designations(name),
        project:projects(name)
      )`;
@@ -82,6 +95,10 @@ function mapRow(r: RawRow, orgName: string): ReportRow {
     project: r.assignee!.project?.name ?? "",
     organization: orgName,
     dateOfJoining: r.assignee!.date_of_joining ?? "",
+    projectId: r.assignee!.project_id ?? "",
+    designationId: r.assignee!.designation_id ?? "",
+    role: r.assignee!.system_role,
+    assignedById: r.task!.created_by ?? "",
   };
 }
 
@@ -108,10 +125,28 @@ function resolveRange(filters: ReportFilters): { from: string; to: string } {
   return { from, to };
 }
 
+/** Filters that aren't expressed in the query: months, and the people/status filters. */
 function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
-  const months = filters.months && filters.months.length > 0 ? new Set(filters.months) : null;
-  if (!months) return rows;
-  return rows.filter((r) => months.has(r.dueDate.slice(0, 7)));
+  const set = (a?: string[]) => (a && a.length > 0 ? new Set(a) : null);
+  const months = set(filters.months);
+  const projects = set(filters.projectIds);
+  const designations = set(filters.designationIds);
+  const roles = set(filters.roles);
+  const statuses = set(filters.statuses);
+  const assigners = set(filters.assignedByIds);
+  const today = todayIso();
+  return rows.filter((r) => {
+    if (months && !months.has(r.dueDate.slice(0, 7))) return false;
+    if (projects && !projects.has(r.projectId)) return false;
+    if (designations && !designations.has(r.designationId)) return false;
+    if (roles && !roles.has(r.role)) return false;
+    if (assigners && !assigners.has(r.assignedById)) return false;
+    if (statuses) {
+      const s = r.status === "completed" ? "completed" : r.dueDate < today ? "delayed" : "pending";
+      if (!statuses.has(s)) return false;
+    }
+    return true;
+  });
 }
 
 /** Exposes the same range resolution the queries use, so pages can display
