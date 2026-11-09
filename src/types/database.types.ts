@@ -118,6 +118,7 @@ export type Database = {
           name: string
           org_id: string | null
           reports_to_designation_id: string | null
+          reports_to_role: string | null
         }
         Insert: {
           created_at?: string | null
@@ -125,6 +126,7 @@ export type Database = {
           name: string
           org_id?: string | null
           reports_to_designation_id?: string | null
+          reports_to_role?: string | null
         }
         Update: {
           created_at?: string | null
@@ -132,6 +134,7 @@ export type Database = {
           name?: string
           org_id?: string | null
           reports_to_designation_id?: string | null
+          reports_to_role?: string | null
         }
         Relationships: [
           {

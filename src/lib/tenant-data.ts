@@ -178,5 +178,6 @@ export async function getTenantDesignations(orgId: string) {
     id: d.id,
     name: d.name,
     reports_to_designation_id: d.reports_to_designation_id ?? null,
+    reports_to_role: (d.reports_to_role as "master_admin" | "reporting_manager" | null) ?? null,
   }));
 }

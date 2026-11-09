@@ -9,6 +9,42 @@ import {
 } from "@/app/(app)/users/actions";
 import type { DesignationItem } from "@/lib/org-data";
 
+const ROLE_OPTIONS = [
+  { value: "r:master_admin", label: "Org Admin (role)" },
+  { value: "r:reporting_manager", label: "Reporting Manager (role)" },
+];
+
+function parentValue(i: DesignationItem) {
+  if (i.reports_to_designation_id) return `d:${i.reports_to_designation_id}`;
+  if (i.reports_to_role) return `r:${i.reports_to_role}`;
+  return "";
+}
+
+function ParentOptions({ items, self, prefix = "" }: { items: DesignationItem[]; self?: string; prefix?: string }) {
+  return (
+    <>
+      <optgroup label="Designations">
+        {items
+          .filter((o) => o.id !== self)
+          .map((o) => (
+            <option key={o.id} value={`d:${o.id}`}>
+              {prefix}
+              {o.name}
+            </option>
+          ))}
+      </optgroup>
+      <optgroup label="System roles">
+        {ROLE_OPTIONS.map((r) => (
+          <option key={r.value} value={r.value}>
+            {prefix}
+            {r.label}
+          </option>
+        ))}
+      </optgroup>
+    </>
+  );
+}
+
 const select =
   "px-2.5 py-1.5 border border-panel-border rounded-md text-[12.5px] bg-panel-bg text-text-main";
 
@@ -43,8 +79,6 @@ export function DesignationManager({
     { error: null } as UserFormState
   );
 
-  const nameOf = (id: string | null) => items.find((i) => i.id === id)?.name ?? null;
-
   function withOrg(fd: FormData) {
     if (orgId) fd.set("orgId", orgId);
     return fd;
@@ -61,10 +95,10 @@ export function DesignationManager({
     });
   }
 
-  function saveParent(id: string, parentId: string) {
+  function saveParent(id: string, parent: string) {
     const fd = withOrg(new FormData());
     fd.set("id", id);
-    fd.set("parentId", parentId);
+    fd.set("parent", parent);
     startWork(async () => {
       const res = await setDesignationParent(fd);
       setError(res.error);
@@ -78,8 +112,8 @@ export function DesignationManager({
         <div className="text-[12.5px] text-text-sub">{items.length} total</div>
       </div>
       <div className="text-[12.5px] text-text-sub mb-3.5">
-        Pick the designation each one reports to. When you set someone&apos;s manager, only people
-        holding the mapped designation are listed.
+        Pick who each designation reports to: another designation, or a system role such as Org
+        Admin. When you set someone&apos;s manager, only people matching that choice are listed.
       </div>
 
       <div className="flex flex-col mb-4">
@@ -125,19 +159,13 @@ export function DesignationManager({
                   <label className="flex items-center gap-2 text-[12px] text-text-sub">
                     Reports to
                     <select
-                      value={i.reports_to_designation_id ?? ""}
+                      value={parentValue(i)}
                       disabled={busy}
                       onChange={(e) => saveParent(i.id, e.target.value)}
                       className={select}
                     >
                       <option value="">— Top level —</option>
-                      {items
-                        .filter((o) => o.id !== i.id)
-                        .map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.name}
-                          </option>
-                        ))}
+                      <ParentOptions items={items} self={i.id} />
                     </select>
                   </label>
                   <button
@@ -175,17 +203,13 @@ export function DesignationManager({
           className="flex-1 min-w-[200px] max-w-[300px] px-2.5 py-1.5 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
         />
         <select
-          name="parentId"
+          name="parent"
           value={newParent}
           onChange={(e) => setNewParent(e.target.value)}
           className={select}
         >
           <option value="">Reports to: top level</option>
-          {items.map((o) => (
-            <option key={o.id} value={o.id}>
-              Reports to: {o.name}
-            </option>
-          ))}
+          <ParentOptions items={items} prefix="Reports to: " />
         </select>
         <button
           type="submit"
@@ -196,14 +220,6 @@ export function DesignationManager({
         </button>
         {state.error ? <div className="text-[11px] text-danger">{state.error}</div> : null}
       </form>
-      {items.length > 0 ? (
-        <div className="text-[11.5px] text-text-faint mt-3">
-          Example: {items[0].name}
-          {nameOf(items[0].reports_to_designation_id)
-            ? ` → ${nameOf(items[0].reports_to_designation_id)}`
-            : " (top level)"}
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -204,6 +204,8 @@ export type DesignationItem = {
   id: string;
   name: string;
   reports_to_designation_id: string | null;
+  /** Alternative to a designation: the designation reports to anyone holding this system role. */
+  reports_to_role: "master_admin" | "reporting_manager" | null;
 };
 
 export async function getOrgDesignations(orgId: string): Promise<DesignationItem[]> {
@@ -219,6 +221,7 @@ export async function getOrgDesignations(orgId: string): Promise<DesignationItem
     id: d.id,
     name: d.name,
     reports_to_designation_id: d.reports_to_designation_id ?? null,
+    reports_to_role: (d.reports_to_role as DesignationItem["reports_to_role"]) ?? null,
   }));
 }
 

@@ -41,7 +41,7 @@ export function roleHome(role: AppUser["system_role"]): string {
     case "platform_owner":
       return "/platform-dashboard";
     case "master_admin":
-      return "/org-settings";
+      return "/org-dashboard";
     case "reporting_manager":
     case "user":
       return "/dashboard";

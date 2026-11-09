@@ -41,11 +41,20 @@ export function EditUserModal({
 
   // Candidate managers: people holding the designation this one reports to.
   // With no mapping, fall back to all reporting managers.
-  const mappedParent = designations.find((d) => d.id === designationId)?.reports_to_designation_id ?? null;
-  const mappedParentName = designations.find((d) => d.id === mappedParent)?.name ?? null;
+  const dsg = designations.find((d) => d.id === designationId);
+  const mappedParent = dsg?.reports_to_designation_id ?? null;
+  const mappedRole = dsg?.reports_to_role ?? null;
+  const mappedLabel = mappedParent
+    ? (designations.find((d) => d.id === mappedParent)?.name ?? null)
+    : mappedRole
+      ? ROLE_LABELS[mappedRole]
+      : null;
+  const mapped = !!(mappedParent || mappedRole);
   const candidates = (mappedParent
     ? employees.filter((e) => e.designation_id === mappedParent && e.is_active)
-    : managers
+    : mappedRole
+      ? employees.filter((e) => e.system_role === mappedRole && e.is_active)
+      : managers
   ).filter((m) => m.id !== target.id);
   // Keep the current manager selectable even if they no longer match.
   const current = target.reports_to ? employees.find((e) => e.id === target.reports_to) : undefined;
@@ -157,8 +166,8 @@ export function EditUserModal({
               <div>
                 <label className="text-xs font-semibold text-text-sub block mb-1.5">
                   Reports to
-                  {mappedParentName ? (
-                    <span className="font-normal text-text-faint"> — {mappedParentName}</span>
+                  {mappedLabel ? (
+                    <span className="font-normal text-text-faint"> — {mappedLabel}</span>
                   ) : null}
                 </label>
                 <select
@@ -175,14 +184,14 @@ export function EditUserModal({
                     </option>
                   ))}
                 </select>
-                {!mappedParent ? (
+                {!mapped ? (
                   <div className="text-[11px] text-text-faint mt-1">
                     No manager designation is mapped for this designation, so all reporting
                     managers are listed. Map one under Organization Settings → Project variables.
                   </div>
                 ) : options.length === 0 ? (
                   <div className="text-[11px] text-danger mt-1">
-                    Nobody currently holds the {mappedParentName} designation.
+                    Nobody currently matches {mappedLabel}.
                   </div>
                 ) : null}
               </div>

@@ -185,13 +185,16 @@ export async function createDesignation(
   const { orgId } = ctx;
 
   const name = String(formData.get("name") ?? "").trim();
-  const parentId = String(formData.get("parentId") ?? "") || null;
+  const parent = parseParent(String(formData.get("parent") ?? ""));
   if (!name) return { error: "Designation name is required." };
 
   const supabase = ctx.client ?? (await createClient());
-  const { error } = await supabase
-    .from("designations")
-    .insert({ org_id: orgId, name, ...(parentId ? { reports_to_designation_id: parentId } : {}) });
+  const { error } = await supabase.from("designations").insert({
+    org_id: orgId,
+    name,
+    ...(parent.designationId ? { reports_to_designation_id: parent.designationId } : {}),
+    ...(parent.role ? { reports_to_role: parent.role } : {}),
+  });
   if (error) return { error: error.message };
 
   revalidatePath("/users");
@@ -313,7 +316,16 @@ export async function renameDesignation(formData: FormData): Promise<UserFormSta
   return renameOrgItem("designations", "Designation", formData);
 }
 
-/** Maps a designation to the designation its holders report to (null = top of the hierarchy). */
+/** "d:<designation id>" | "r:<system role>" | "" -> what a designation reports to. */
+function parseParent(raw: string): { designationId: string | null; role: string | null } {
+  if (raw.startsWith("d:")) return { designationId: raw.slice(2) || null, role: null };
+  if (raw === "r:master_admin" || raw === "r:reporting_manager") {
+    return { designationId: null, role: raw.slice(2) };
+  }
+  return { designationId: null, role: null };
+}
+
+/** Maps a designation to what its holders report to: another designation, a system role, or nothing (top of the hierarchy). */
 export async function setDesignationParent(formData: FormData): Promise<UserFormState> {
   const appUser = await requireRole(["master_admin", "platform_owner"]);
   const ctx = resolveOrgContext(appUser, formData);
@@ -321,7 +333,7 @@ export async function setDesignationParent(formData: FormData): Promise<UserForm
   const { orgId } = ctx;
 
   const id = String(formData.get("id") ?? "");
-  const parentId = String(formData.get("parentId") ?? "") || null;
+  const { designationId: parentId, role: parentRole } = parseParent(String(formData.get("parent") ?? ""));
   if (!id) return { error: "Designation not found." };
 
   const supabase = ctx.client ?? (await createClient());
@@ -340,13 +352,13 @@ export async function setDesignationParent(formData: FormData): Promise<UserForm
 
   const { error } = await supabase
     .from("designations")
-    .update({ reports_to_designation_id: parentId })
+    .update({ reports_to_designation_id: parentId, reports_to_role: parentRole })
     .eq("id", id)
     .eq("org_id", orgId);
   if (error) {
     return {
       error: /column|schema cache/i.test(error.message)
-        ? "Apply the latest database migration (designation hierarchy) first."
+        ? "Apply the latest database migrations (designation hierarchy) first."
         : error.message,
     };
   }
