@@ -218,6 +218,41 @@ export type Database = {
           },
         ]
       }
+      org_email_templates: {
+        Row: {
+          body: string | null
+          enabled: boolean
+          event: string
+          org_id: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          enabled?: boolean
+          event: string
+          org_id: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          enabled?: boolean
+          event?: string
+          org_id?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_email_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           auto_deactivate_date: string | null
@@ -237,6 +272,13 @@ export type Database = {
           smtp_password: string | null
           smtp_port: number | null
           smtp_username: string | null
+          email_signature: string | null
+          smtp_bcc: string | null
+          smtp_bcc_enabled: boolean
+          smtp_cc: string | null
+          smtp_cc_enabled: boolean
+          smtp_from_name: string | null
+          smtp_secure: string
         }
         Insert: {
           auto_deactivate_date?: string | null
@@ -256,6 +298,13 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
+          email_signature?: string | null
+          smtp_bcc?: string | null
+          smtp_bcc_enabled?: boolean
+          smtp_cc?: string | null
+          smtp_cc_enabled?: boolean
+          smtp_from_name?: string | null
+          smtp_secure?: string
         }
         Update: {
           auto_deactivate_date?: string | null
@@ -275,6 +324,13 @@ export type Database = {
           smtp_password?: string | null
           smtp_port?: number | null
           smtp_username?: string | null
+          email_signature?: string | null
+          smtp_bcc?: string | null
+          smtp_bcc_enabled?: boolean
+          smtp_cc?: string | null
+          smtp_cc_enabled?: boolean
+          smtp_from_name?: string | null
+          smtp_secure?: string
         }
         Relationships: []
       }
@@ -473,6 +529,8 @@ export type Database = {
           reminder_enabled: boolean | null
           start_date: string
           task_name: string
+          notification_cc: string | null
+          notify_on_complete: boolean
         }
         Insert: {
           assignee_id?: string | null
@@ -492,6 +550,8 @@ export type Database = {
           reminder_enabled?: boolean | null
           start_date: string
           task_name: string
+          notification_cc?: string | null
+          notify_on_complete?: boolean
         }
         Update: {
           assignee_id?: string | null
@@ -511,6 +571,8 @@ export type Database = {
           reminder_enabled?: boolean | null
           start_date?: string
           task_name?: string
+          notification_cc?: string | null
+          notify_on_complete?: boolean
         }
         Relationships: [
           {

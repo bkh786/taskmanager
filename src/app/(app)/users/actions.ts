@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireRole, type AppUser } from "@/lib/auth";
+import { sendOrgEvent } from "@/lib/email";
+import { ROLE_LABEL } from "@/lib/email-events";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOrgContext } from "@/lib/org-context";
@@ -75,6 +78,22 @@ export async function createOrReplaceUser(
     await admin.auth.admin.deleteUser(created.user.id);
     return { error: insertError.message };
   }
+
+  // Welcome email (respects the org's on/off switch and template) -- sent in
+  // the background so the form returns immediately.
+  after(() =>
+    sendOrgEvent({
+      orgId,
+      event: "user_created",
+      to: email,
+      vars: {
+        user_name: fullName,
+        user_email: email,
+        employee_code: employeeCode,
+        role: ROLE_LABEL[role] ?? role,
+      },
+    })
+  );
 
   if (mode === "replacing" && replacingUserId) {
     const today = new Date().toISOString().slice(0, 10);

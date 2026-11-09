@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "./actions";
 import type { LoginState } from "./types";
@@ -67,6 +68,11 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
             placeholder="••••••••"
             className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-sm text-text-main bg-panel-bg"
           />
+        </div>
+        <div className="text-right -mt-1.5">
+          <Link href="/forgot-password" className="text-[12.5px] font-semibold text-accent">
+            Forgot password?
+          </Link>
         </div>
         {state.error ? (
           <div className="text-[12.5px] text-danger">{state.error}</div>

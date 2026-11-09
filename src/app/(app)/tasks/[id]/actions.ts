@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canManageAssignee } from "@/lib/authz";
 import { getAssignableEmployees } from "@/lib/org-data";
 import { todayIso } from "@/lib/task-status";
+import { parseEmailList } from "@/lib/email-events";
 import type { Enums } from "@/types/database.types";
 
 export type FormState = { error: string | null };
@@ -189,6 +190,8 @@ export async function updateTask(
   const noEnd = formData.get("noEnd") === "on";
   const endDate = noEnd ? null : String(formData.get("endDate") ?? "") || null;
   const reminderEnabled = formData.get("reminderEnabled") === "on";
+  const notifyOnComplete = formData.get("notifyOnComplete") === "on";
+  const notificationCc = parseEmailList(String(formData.get("notificationCc") ?? ""));
 
   if (!taskName) return { error: "Task name is required." };
 
@@ -226,6 +229,8 @@ export async function updateTask(
       excluded_weekdays: recurrenceKind === "daily" ? excludedWeekdays : [],
       end_date: endDate,
       reminder_enabled: reminderEnabled,
+      notify_on_complete: notifyOnComplete,
+      notification_cc: notificationCc.length ? notificationCc.join(", ") : null,
     })
     .eq("id", taskId);
   if (updateError) return { error: updateError.message };

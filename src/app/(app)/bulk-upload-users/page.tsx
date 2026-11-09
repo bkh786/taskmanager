@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getTenants } from "@/lib/tenant-data";
 import { BulkUsersUploadForm } from "@/components/bulk-upload-users/upload-form";
 
+// Welcome emails for a large upload are sent after the response; allow time for them.
+export const maxDuration = 60;
+
 export default async function BulkUploadUsersPage() {
   const appUser = await requireRole(["master_admin", "platform_owner"]);
 

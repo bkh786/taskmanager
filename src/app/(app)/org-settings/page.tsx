@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/org-settings/settings-form";
+import { NotificationTemplatesForm } from "@/components/org-settings/notification-templates-form";
+import { getOrgSettings, getSavedTemplates } from "@/lib/org-settings-data";
 import { LogoUploadForm } from "@/components/org-settings/logo-upload-form";
 import { LoginLinkForm } from "@/components/org-settings/login-link-form";
 
@@ -18,12 +20,11 @@ export default async function OrgSettingsPage() {
   const appUser = await requireRole(["master_admin"]);
   const supabase = await createClient();
 
-  const { data: org, error } = await supabase
-    .from("organizations")
-    .select("*")
-    .eq("id", appUser.org_id ?? "")
-    .single();
-  if (error || !org) {
+  const [org, templates] = await Promise.all([
+    getOrgSettings(appUser.org_id ?? ""),
+    getSavedTemplates(appUser.org_id ?? ""),
+  ]);
+  if (!org) {
     return <div className="text-[13.5px] text-danger">Could not load organization.</div>;
   }
 
@@ -33,7 +34,7 @@ export default async function OrgSettingsPage() {
     .eq("org_id", appUser.org_id ?? "");
 
   return (
-    <div className="max-w-[760px]">
+    <div className="max-w-[920px]">
       <div className="text-[22px] font-bold text-text-main mb-0.5">
         Organization Settings
       </div>
@@ -42,6 +43,10 @@ export default async function OrgSettingsPage() {
       </div>
 
       <SettingsForm org={org} />
+
+      <div className="mt-8">
+        <NotificationTemplatesForm templates={templates} />
+      </div>
 
       <div className="mt-5">
         <LogoUploadForm logoUrl={org.logo_url} />

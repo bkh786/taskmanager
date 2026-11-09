@@ -2,6 +2,9 @@
 
 import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { sendOrgEvent } from "@/lib/email";
+import { ROLE_LABEL } from "@/lib/email-events";
 import { requireRole, type AppUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -76,6 +79,7 @@ export async function bulkCreateUsers(
 
   const skipped: BulkUserUploadState["skipped"] = [];
   let created = 0;
+  const welcomeQueue: { email: string; fullName: string; employeeCode: string; role: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 2; // account for header row, 1-indexed
@@ -177,7 +181,32 @@ export async function bulkCreateUsers(
     }
 
     emailToId.set(email, createdAuthUser.user.id);
+    welcomeQueue.push({ email, fullName, employeeCode, role: roleRaw });
     created++;
+  }
+
+  // Welcome emails go out after the response, a few at a time, so a big
+  // upload doesn't wait on (or time out because of) the mail server.
+  if (welcomeQueue.length > 0) {
+    after(async () => {
+      for (let i = 0; i < welcomeQueue.length; i += 4) {
+        await Promise.all(
+          welcomeQueue.slice(i, i + 4).map((u) =>
+            sendOrgEvent({
+              orgId,
+              event: "user_created",
+              to: u.email,
+              vars: {
+                user_name: u.fullName,
+                user_email: u.email,
+                employee_code: u.employeeCode,
+                role: ROLE_LABEL[u.role] ?? u.role,
+              },
+            })
+          )
+        );
+      }
+    });
   }
 
   if (created > 0) {

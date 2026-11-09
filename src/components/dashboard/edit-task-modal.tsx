@@ -26,6 +26,8 @@ export type EditableTask = {
   startDate: string;
   endDate: string | null;
   reminderEnabled: boolean;
+  notifyOnComplete: boolean;
+  notificationCc: string | null;
   endDateFloor: string;
 };
 
@@ -237,6 +239,25 @@ export function EditTaskModal({
             />
             Send reminder notifications
           </label>
+          <label className="flex items-center gap-2 text-[12.5px] text-text-body cursor-pointer">
+            <input
+              type="checkbox"
+              name="notifyOnComplete"
+              defaultChecked={task.notifyOnComplete}
+            />
+            Email me when this task is completed
+          </label>
+          <div>
+            <label className="text-xs font-semibold text-text-sub block mb-1.5">
+              Also Cc on this task&apos;s emails (optional)
+            </label>
+            <input
+              name="notificationCc"
+              defaultValue={task.notificationCc ?? ""}
+              placeholder="manager@acme.com, client@acme.com"
+              className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
+            />
+          </div>
 
           {state.error ? (
             <div className="text-[12.5px] text-danger">{state.error}</div>

@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth";
-import { sendOrgEmail } from "@/lib/email";
+import { appBaseUrl, sendOrgEvent } from "@/lib/email";
+import { parseEmailList } from "@/lib/email-events";
 import { fmtDate } from "@/lib/task-status";
 import { getAssignableEmployees } from "@/lib/org-data";
 import {
@@ -38,6 +40,8 @@ export async function createTask(
   const noEnd = formData.get("noEnd") === "on";
   const endDate = noEnd ? null : String(formData.get("endDate") ?? "") || null;
   const reminderEnabled = formData.get("reminderEnabled") === "on";
+  const notifyOnComplete = formData.get("notifyOnComplete") === "on";
+  const notificationCcList = parseEmailList(String(formData.get("notificationCc") ?? ""));
   const excludedWeekdays =
     recurrenceKind === "daily"
       ? formData.getAll("excludedWeekdays").map((v) => Number(v))
@@ -73,6 +77,8 @@ export async function createTask(
       start_date: startDate,
       end_date: endDate,
       reminder_enabled: reminderEnabled,
+      notify_on_complete: notifyOnComplete,
+      notification_cc: notificationCcList.length ? notificationCcList.join(", ") : null,
     })
     .select("id")
     .single();
@@ -88,23 +94,43 @@ export async function createTask(
     return { error: `Task created, but scheduling failed: ${genError.message}` };
   }
 
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("id, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email")
-    .eq("id", appUser.org_id)
-    .single();
-  const { data: assignee } = await supabase
-    .from("app_users")
-    .select("email, full_name")
-    .eq("id", assigneeId)
-    .single();
-  if (org && assignee) {
-    await sendOrgEmail(org, {
-      to: assignee.email,
-      subject: `New task assigned: ${taskName}`,
-      html: `<p>Hi ${assignee.full_name},</p><p><strong>${taskName}</strong> has been assigned to you, starting ${fmtDate(startDate)}.</p>${description ? `<p>${description}</p>` : ""}`,
-      notifType: "assigned",
-    });
+  // The assignee is emailed in the background so the form returns immediately.
+  if (assigneeId !== appUser.id) {
+    const orgId = appUser.org_id;
+    const assignedBy = appUser.full_name;
+    const [{ data: assignee }, { data: firstInstance }] = await Promise.all([
+      supabase.from("app_users").select("email, full_name").eq("id", assigneeId).single(),
+      supabase
+        .from("task_instances")
+        .select("id")
+        .eq("task_id", task.id)
+        .order("due_date", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (assignee) {
+      const schedule = isRecurring
+        ? `${recurrenceKind[0].toUpperCase()}${recurrenceKind.slice(1)}${recurrenceInterval > 1 ? ` (every ${recurrenceInterval})` : ""}`
+        : "One-time";
+      after(() =>
+        sendOrgEvent({
+          orgId,
+          event: "task_assigned",
+          to: assignee.email,
+          taskInstanceId: firstInstance?.id ?? null,
+          extraCc: notificationCcList,
+          vars: {
+            assignee_name: assignee.full_name,
+            task_name: taskName,
+            description: description || "",
+            start_date: fmtDate(startDate),
+            schedule,
+            assigned_by: assignedBy,
+            task_link: firstInstance ? `${appBaseUrl()}/tasks/${firstInstance.id}` : appBaseUrl(),
+          },
+        })
+      );
+    }
   }
 
   revalidatePath("/dashboard");
@@ -177,34 +203,44 @@ export async function completeTaskInstance(
 
   if (error) return { error: error.message };
 
+  // Tell the task's creator (unless they switched that off for this task, or
+  // they are the one completing it) -- in the background so the form returns at once.
   const { data: instanceInfo } = await supabase
     .from("task_instances")
     .select(
-      `assignee:app_users!task_instances_assignee_id_fkey(full_name),
-       task:tasks!task_instances_task_id_fkey(task_name, created_by)`
+      `due_date, assignee:app_users!task_instances_assignee_id_fkey(full_name),
+       task:tasks!task_instances_task_id_fkey(task_name, created_by, notify_on_complete, notification_cc)`
     )
     .eq("id", instanceId)
     .single();
-  const creatorId = instanceInfo?.task?.created_by;
-  if (creatorId) {
-    const [{ data: org }, { data: creator }] = await Promise.all([
-      supabase
-        .from("organizations")
-        .select("id, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email")
-        .eq("id", appUser.org_id)
-        .single(),
-      supabase.from("app_users").select("email").eq("id", creatorId).single(),
-    ]);
-    if (org && creator) {
-      const assigneeName = instanceInfo?.assignee?.full_name ?? "A teammate";
-      const taskName = instanceInfo?.task?.task_name ?? "A task";
-      await sendOrgEmail(org, {
-        to: creator.email,
-        subject: `Task completed: ${taskName}`,
-        html: `<p>${assigneeName} marked <strong>${taskName}</strong> as complete.</p>${comment ? `<p>Comment: ${comment}</p>` : ""}`,
-        notifType: "completed",
-        taskInstanceId: instanceId,
-      });
+  const task = instanceInfo?.task;
+  const creatorId = task?.created_by;
+  if (task && creatorId && creatorId !== appUser.id && task.notify_on_complete !== false) {
+    const { data: creator } = await supabase
+      .from("app_users")
+      .select("email, full_name")
+      .eq("id", creatorId)
+      .single();
+    if (creator) {
+      const orgId = appUser.org_id;
+      const vars = {
+        creator_name: creator.full_name,
+        assignee_name: instanceInfo?.assignee?.full_name ?? "A teammate",
+        task_name: task.task_name,
+        due_date: fmtDate(instanceInfo?.due_date ?? ""),
+        comment: comment || "(no comment)",
+        task_link: `${appBaseUrl()}/tasks/${instanceId}`,
+      };
+      after(() =>
+        sendOrgEvent({
+          orgId,
+          event: "task_completed",
+          to: creator.email,
+          taskInstanceId: instanceId,
+          extraCc: parseEmailList(task.notification_cc),
+          vars,
+        })
+      );
     }
   }
 
@@ -254,26 +290,32 @@ export async function requestDateChange(
     return { error: "Only the assignee can request a date change.", success: false };
   }
 
-  const creatorId = instanceInfo?.task?.created_by;
-  if (creatorId) {
-    const [{ data: org }, { data: creator }] = await Promise.all([
-      supabase
-        .from("organizations")
-        .select("id, smtp_host, smtp_port, smtp_username, smtp_password, smtp_from_email")
-        .eq("id", appUser.org_id)
-        .single(),
-      supabase.from("app_users").select("email").eq("id", creatorId).single(),
-    ]);
-    if (org && creator) {
-      const assigneeName = instanceInfo?.assignee?.full_name ?? "A teammate";
-      const taskName = instanceInfo?.task?.task_name ?? "A task";
-      await sendOrgEmail(org, {
-        to: creator.email,
-        subject: `Date change requested: ${taskName}`,
-        html: `<p>${assigneeName} requested moving <strong>${taskName}</strong> (currently due ${fmtDate(instanceInfo?.due_date ?? "")}) to ${fmtDate(newDate)}.</p><p>This hasn't been changed automatically -- transfer or otherwise update the task if you agree.</p>`,
-        notifType: "date_change_requested",
-        taskInstanceId: instanceId,
-      });
+  const creatorId = instanceInfo.task?.created_by;
+  if (creatorId && creatorId !== appUser.id) {
+    const { data: creator } = await supabase
+      .from("app_users")
+      .select("email, full_name")
+      .eq("id", creatorId)
+      .single();
+    if (creator) {
+      const orgId = appUser.org_id;
+      const vars = {
+        creator_name: creator.full_name,
+        assignee_name: instanceInfo.assignee?.full_name ?? "A teammate",
+        task_name: instanceInfo.task?.task_name ?? "A task",
+        due_date: fmtDate(instanceInfo.due_date),
+        proposed_date: fmtDate(newDate),
+        task_link: `${appBaseUrl()}/tasks/${instanceId}`,
+      };
+      after(() =>
+        sendOrgEvent({
+          orgId,
+          event: "date_change_requested",
+          to: creator.email,
+          taskInstanceId: instanceId,
+          vars,
+        })
+      );
     }
   }
 

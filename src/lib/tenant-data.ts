@@ -11,7 +11,9 @@ export type TenantRow = Tables<"organizations"> & {
 
 export async function getTenants(): Promise<TenantRow[]> {
   const supabase = await createClient();
-  const { data: orgs, error } = await supabase
+  // Service role: SMTP credentials are no longer readable through the API, so
+  // select("*") under the caller's own connection would be refused.
+  const { data: orgs, error } = await createAdminClient()
     .from("organizations")
     .select("*")
     .order("created_at", { ascending: false });

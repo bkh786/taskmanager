@@ -258,6 +258,20 @@ export function CreateTaskModal({ employees }: { employees: Employee[] }) {
               <input type="checkbox" name="reminderEnabled" defaultChecked />
               Send reminder notifications
             </label>
+            <label className="flex items-center gap-2 text-[12.5px] text-text-body cursor-pointer">
+              <input type="checkbox" name="notifyOnComplete" defaultChecked />
+              Email me when this task is completed
+            </label>
+            <div>
+              <label className="text-xs font-semibold text-text-sub block mb-1.5">
+                Also Cc on this task&apos;s emails (optional)
+              </label>
+              <input
+                name="notificationCc"
+                placeholder="manager@acme.com, client@acme.com"
+                className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
+              />
+            </div>
 
             {state.error ? (
               <div className="text-[12.5px] text-danger">{state.error}</div>

@@ -9,6 +9,8 @@ import {
   getTenantDesignations,
 } from "@/lib/tenant-data";
 import { SettingsForm } from "@/components/org-settings/settings-form";
+import { NotificationTemplatesForm } from "@/components/org-settings/notification-templates-form";
+import { getSavedTemplates, toSettingsOrg } from "@/lib/org-settings-data";
 import { LogoUploadForm } from "@/components/org-settings/logo-upload-form";
 import { LoginLinkForm } from "@/components/org-settings/login-link-form";
 import { UsersManager } from "@/components/users/users-manager";
@@ -42,7 +44,10 @@ export default async function TenantManagePage({
       </div>
 
       <div className="text-[14.5px] font-bold text-text-main mb-3">Organization settings</div>
-      <SettingsForm org={org} orgId={orgId} />
+      <SettingsForm org={toSettingsOrg(org)} orgId={orgId} />
+      <div className="mt-8">
+        <NotificationTemplatesForm templates={await getSavedTemplates(orgId)} orgId={orgId} />
+      </div>
       <div className="mt-5">
         <LogoUploadForm logoUrl={org.logo_url} orgId={orgId} />
       </div>

@@ -29,7 +29,8 @@ export default async function TaskDetailPage({
        assignee_id, original_assignee_id,
        task:tasks!task_instances_task_id_fkey (
          task_name, description, is_recurring, recurrence_kind, recurrence_interval,
-         excluded_weekdays, start_date, end_date, reminder_enabled
+         excluded_weekdays, start_date, end_date, reminder_enabled,
+         notify_on_complete, notification_cc
        ),
        assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, reports_to, project:projects(name) )`
     )
@@ -173,6 +174,8 @@ export default async function TaskDetailPage({
                 startDate: data.task.start_date,
                 endDate: data.task.end_date,
                 reminderEnabled: !!data.task.reminder_enabled,
+                notifyOnComplete: data.task.notify_on_complete !== false,
+                notificationCc: data.task.notification_cc,
                 endDateFloor,
               }}
             />
