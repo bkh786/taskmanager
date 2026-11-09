@@ -7,6 +7,7 @@ import { UserModal } from "./user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import { ProjectsDesignationsPanel } from "./projects-designations-panel";
 import { ExportUsersButton } from "./export-users-button";
+import { BulkUsersUploadForm } from "@/components/bulk-upload-users/upload-form";
 
 const ROLE_LABELS: Record<AppUser["system_role"], string> = {
   platform_owner: "Platform Owner",
@@ -76,6 +77,8 @@ export function UsersManager({
   showReportsTo,
   canCreate = true,
   orgId,
+  bulkOrgs = [],
+  showProjectsPanel = false,
 }: {
   users: Employee[];
   managers: Employee[];
@@ -87,8 +90,13 @@ export function UsersManager({
   canCreate?: boolean;
   /** Set only when a platform_owner is managing a tenant other than their own. */
   orgId?: string;
+  /** Organizations the bulk-upload window can target (the viewer's own, or the tenant being managed). */
+  bulkOrgs?: { id: string; slug: string; name: string }[];
+  /** Projects/designations now live under Organization Settings; only the platform owner's tenant page still shows them here. */
+  showProjectsPanel?: boolean;
 }) {
   const [modal, setModal] = useState<ModalState>({ kind: "none" });
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search, 250);
   const [sortKey, setSortKey] = useState<SortKey>("full_name");
@@ -142,6 +150,14 @@ export function UsersManager({
         </div>
         <div className="flex items-center gap-2.5">
           <ExportUsersButton users={users} />
+          {canCreate && bulkOrgs.length > 0 ? (
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="border border-panel-border bg-panel-bg text-text-body hover:border-accent px-4 py-2.5 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap"
+            >
+              ⬆ Bulk Upload
+            </button>
+          ) : null}
           {canCreate ? (
             <button
               onClick={() => setModal({ kind: "add" })}
@@ -153,12 +169,14 @@ export function UsersManager({
         </div>
       </div>
 
-      <ProjectsDesignationsPanel
-        projects={projects}
-        designations={designations}
-        canCreate={canCreate}
-        orgId={orgId}
-      />
+      {showProjectsPanel ? (
+        <ProjectsDesignationsPanel
+          projects={projects}
+          designations={designations}
+          canCreate={canCreate}
+          orgId={orgId}
+        />
+      ) : null}
 
       <div className="mb-3.5">
         <input
@@ -254,6 +272,34 @@ export function UsersManager({
           </tbody>
         </table>
       </div>
+
+      {bulkOpen ? (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setBulkOpen(false);
+          }}
+        >
+          <div className="w-[680px] max-w-full max-h-[88vh] overflow-y-auto bg-body-bg rounded-xl px-6 py-5 shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="text-[16px] font-bold text-text-main">Bulk Upload Users</div>
+                <div className="text-[13px] text-text-sub">
+                  Download the template, fill it in, and upload it to create many users at once.
+                </div>
+              </div>
+              <button
+                onClick={() => setBulkOpen(false)}
+                aria-label="Close"
+                className="border-none bg-transparent text-text-faint text-[20px] leading-none cursor-pointer px-1"
+              >
+                ×
+              </button>
+            </div>
+            <BulkUsersUploadForm orgs={bulkOrgs} />
+          </div>
+        </div>
+      ) : null}
 
       {modal.kind === "add" || modal.kind === "replace" ? (
         <UserModal

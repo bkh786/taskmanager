@@ -5,7 +5,7 @@ import { createProject, createDesignation, type UserFormState } from "@/app/(app
 
 const initialState: UserFormState = { error: null };
 
-function AddForm({
+export function AddForm({
   action,
   placeholder,
   orgId,
@@ -107,6 +107,47 @@ export function ProjectsDesignationsPanel({
         {canCreate ? (
           <AddForm action={createDesignation} placeholder="New designation name" orgId={orgId} />
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** A titled list of names with an add form -- used on the Organization Settings tabs. */
+export function NameListManager({
+  title,
+  items,
+  action,
+  placeholder,
+  emptyText,
+}: {
+  title: string;
+  items: { id: string; name: string }[];
+  action: (prev: UserFormState, fd: FormData) => Promise<UserFormState>;
+  placeholder: string;
+  emptyText: string;
+}) {
+  return (
+    <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
+      <div className="flex items-center justify-between mb-3.5">
+        <div className="text-[14.5px] font-bold text-text-main">{title}</div>
+        <div className="text-[12.5px] text-text-sub">{items.length} total</div>
+      </div>
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {items.length === 0 ? (
+          <span className="text-[12.5px] text-text-faint">{emptyText}</span>
+        ) : (
+          items.map((i) => (
+            <span
+              key={i.id}
+              className="text-[12.5px] font-medium px-2.5 py-1 rounded-md bg-chip-bg text-text-body"
+            >
+              {i.name}
+            </span>
+          ))
+        )}
+      </div>
+      <div className="max-w-[460px]">
+        <AddForm action={action} placeholder={placeholder} />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getTenants } from "@/lib/tenant-data";
@@ -8,6 +9,9 @@ export const maxDuration = 60;
 
 export default async function BulkUploadUsersPage() {
   const appUser = await requireRole(["master_admin", "platform_owner"]);
+
+  // Org Admins now bulk-upload from a window on the User Management page.
+  if (appUser.system_role === "master_admin") redirect("/users");
 
   const orgs =
     appUser.system_role === "platform_owner"

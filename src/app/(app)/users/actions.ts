@@ -170,6 +170,7 @@ export async function createProject(
   if (error) return { error: error.message };
 
   revalidatePath("/users");
+  revalidatePath("/org-settings");
   revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }
@@ -191,6 +192,7 @@ export async function createDesignation(
   if (error) return { error: error.message };
 
   revalidatePath("/users");
+  revalidatePath("/org-settings");
   revalidatePath(`/tenants/${orgId}`);
   return { error: null };
 }

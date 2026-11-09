@@ -70,6 +70,8 @@ export default async function TenantManagePage({
           showReportsTo
           canCreate
           orgId={orgId}
+          showProjectsPanel
+          bulkOrgs={[{ id: org.id, slug: org.slug, name: org.name }]}
         />
       </div>
     </div>

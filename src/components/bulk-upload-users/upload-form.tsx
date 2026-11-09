@@ -37,7 +37,7 @@ export function BulkUsersUploadForm({ orgs }: { orgs: Org[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-5 max-w-[640px]">
+    <div className="flex flex-col gap-5 max-w-full">
       {orgs.length > 1 ? (
         <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
           <div className="text-[14.5px] font-bold text-text-main mb-2.5">Tenant</div>

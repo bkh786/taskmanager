@@ -26,7 +26,6 @@ function navFor(role: AppUser["system_role"]) {
         { href: "/org-dashboard", label: "Dashboard" },
         { href: "/org-settings", label: "Organization Settings" },
         { href: "/users", label: "User Management" },
-        { href: "/bulk-upload-users", label: "Bulk Upload Users" },
         { href: "/reports", label: "Reports" },
       ];
     case "reporting_manager":
@@ -42,6 +41,58 @@ function navFor(role: AppUser["system_role"]) {
         { href: "/reports", label: "Reports" },
       ];
   }
+}
+
+
+const ICON_PATHS: Record<string, string[]> = {
+  // dashboard grid
+  dashboard: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
+  // building / org settings (gear)
+  settings: [
+    "M12 15a3 3 0 100-6 3 3 0 000 6z",
+    "M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z",
+  ],
+  // users
+  users: ["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2", "M9 11a4 4 0 100-8 4 4 0 000 8z", "M23 21v-2a4 4 0 00-3-3.9", "M16 3.1a4 4 0 010 7.8"],
+  // upload
+  upload: ["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4", "M17 8l-5-5-5 5", "M12 3v12"],
+  // bar chart report
+  reports: ["M3 3v18h18", "M7 14l4-4 4 4 5-6"],
+  // copy
+  copy: ["M9 9h11v11H9z", "M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"],
+  // building (tenants)
+  tenants: ["M3 21h18", "M5 21V7l7-4 7 4v14", "M9 9h2", "M13 9h2", "M9 13h2", "M13 13h2", "M9 17h2", "M13 17h2"],
+};
+
+function iconKeyFor(href: string): string {
+  if (href.includes("bulk-upload")) return "upload";
+  if (href.includes("bulk-copy")) return "copy";
+  if (href.includes("report")) return "reports";
+  if (href.includes("settings")) return "settings";
+  if (href.includes("tenants")) return "tenants";
+  if (href.includes("users")) return "users";
+  return "dashboard";
+}
+
+function NavIcon({ href }: { href: string }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      {ICON_PATHS[iconKeyFor(href)].map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
 }
 
 function initials(name: string) {
@@ -84,12 +135,7 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
                 color: active ? "var(--accent)" : "var(--text-body)",
               }}
             >
-              <span
-                className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center text-[11px] font-bold"
-                style={{ background: "currentColor" }}
-              >
-                <span style={{ color: "var(--sidebar-bg)" }}>{item.label[0]}</span>
-              </span>
+              <NavIcon href={item.href} />
               {item.label}
             </Link>
           );
