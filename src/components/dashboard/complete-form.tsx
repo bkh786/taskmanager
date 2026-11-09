@@ -11,13 +11,59 @@ export function CompleteForm({ instanceId }: { instanceId: string }) {
     initialState
   );
   const [fileName, setFileName] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Proof goes browser -> Backblaze B2 directly via a presigned URL (Vercel
+  // caps request bodies at ~4.5 MB); only the resulting object key is posted.
+  async function handleSubmit(formData: FormData) {
+    setUploadError(null);
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      setUploadError("Proof of completion is required.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const res = await fetch("/api/attachments/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instanceId, contentType: file.type, size: file.size }),
+      });
+      const signed = (await res.json()) as { uploadUrl?: string; key?: string; error?: string };
+      if (!res.ok || !signed.uploadUrl || !signed.key) {
+        setUploadError(signed.error ?? "Could not start the upload.");
+        return;
+      }
+
+      const put = await fetch(signed.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) {
+        setUploadError(`Upload failed (${put.status}). Please try again.`);
+        return;
+      }
+
+      formData.delete("file");
+      formData.set("attachmentKey", signed.key);
+    } catch {
+      setUploadError("Upload failed. Check your connection and try again.");
+      return;
+    } finally {
+      setUploading(false);
+    }
+    formAction(formData);
+  }
 
   return (
     <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
       <div className="text-[14.5px] font-bold text-text-main mb-3.5">
         Complete this task
       </div>
-      <form action={formAction} className="flex flex-col gap-1.5">
+      <form action={handleSubmit} className="flex flex-col gap-1.5">
         <input type="hidden" name="instanceId" value={instanceId} />
         <label className="text-xs font-semibold text-text-sub block mb-1.5">
           Comment (optional)
@@ -36,7 +82,7 @@ export function CompleteForm({ instanceId }: { instanceId: string }) {
             type="file"
             name="file"
             required
-            accept="image/*,application/pdf"
+            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
             onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
             className="text-[12.5px] text-text-body"
           />
@@ -44,15 +90,15 @@ export function CompleteForm({ instanceId }: { instanceId: string }) {
         {fileName ? (
           <div className="text-xs text-success mb-2.5">✓ {fileName} attached</div>
         ) : null}
-        {state.error ? (
-          <div className="text-[12.5px] text-danger mb-1">{state.error}</div>
+        {uploadError || state.error ? (
+          <div className="text-[12.5px] text-danger mb-1">{uploadError ?? state.error}</div>
         ) : null}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || uploading}
           className="w-full border-none py-2.5 rounded-md text-[13.5px] font-bold mt-1.5 bg-accent hover:bg-accent-hover text-white cursor-pointer disabled:opacity-60"
         >
-          {pending ? "Submitting…" : "Mark Complete"}
+          {uploading ? "Uploading…" : pending ? "Submitting…" : "Mark Complete"}
         </button>
       </form>
     </div>

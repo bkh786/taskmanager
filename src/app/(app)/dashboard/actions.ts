@@ -6,6 +6,12 @@ import { requireRole } from "@/lib/auth";
 import { sendOrgEmail } from "@/lib/email";
 import { fmtDate } from "@/lib/task-status";
 import { getAssignableEmployees } from "@/lib/org-data";
+import {
+  B2_PREFIX,
+  MAX_ATTACHMENT_BYTES,
+  headObject,
+  deleteObject,
+} from "@/lib/b2";
 import type { Enums } from "@/types/database.types";
 
 export type FormState = { error: string | null };
@@ -120,13 +126,24 @@ export async function completeTaskInstance(
 
   const instanceId = String(formData.get("instanceId") ?? "");
   const comment = String(formData.get("comment") ?? "").trim();
-  const file = formData.get("file");
+  const attachmentKey = String(formData.get("attachmentKey") ?? "");
 
   if (!instanceId) return { error: "Missing task instance." };
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Proof of completion is required." };
-  }
+  if (!attachmentKey) return { error: "Proof of completion is required." };
   if (!appUser.org_id) return { error: "No organization on this account." };
+
+  // The browser uploaded straight to B2 using a URL from /api/attachments/upload-url;
+  // never trust the key it hands back -- it must sit under this org + instance
+  // and actually exist within the allowed size.
+  if (!attachmentKey.startsWith(`${appUser.org_id}/${instanceId}/`)) {
+    return { error: "Invalid attachment." };
+  }
+  const stored = await headObject(attachmentKey);
+  if (!stored) return { error: "Upload not found -- please try attaching the file again." };
+  if (stored.size > MAX_ATTACHMENT_BYTES) {
+    await deleteObject(attachmentKey);
+    return { error: "File is too large." };
+  }
 
   const supabase = await createClient();
 
@@ -143,18 +160,9 @@ export async function completeTaskInstance(
     return { error: "Only the assignee can mark this task complete." };
   }
 
-  const ext = file.name.split(".").pop() || "bin";
-  const path = `${appUser.org_id}/${instanceId}/${Date.now()}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("task-attachments")
-    .upload(path, file, { contentType: file.type });
-  if (uploadError) {
-    return { error: `Upload failed: ${uploadError.message}` };
-  }
-
-  // The bucket is private -- store the storage path, not a public URL.
-  // Callers resolve it to a short-lived signed URL at render time via
+  // The bucket is private -- store the object key (B2_PREFIX marks it as B2
+  // rather than a legacy Supabase Storage path), not a public URL. Callers
+  // resolve it to a short-lived signed URL at render time via
   // getAttachmentSignedUrl() in lib/attachments.ts.
   const { error } = await supabase
     .from("task_instances")
@@ -163,7 +171,7 @@ export async function completeTaskInstance(
       completed_at: new Date().toISOString(),
       completed_by: appUser.id,
       comment: comment || null,
-      attachment_url: path,
+      attachment_url: `${B2_PREFIX}${attachmentKey}`,
     })
     .eq("id", instanceId);
 
