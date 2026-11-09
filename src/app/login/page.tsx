@@ -33,7 +33,14 @@ export default async function LoginPage({
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-sidebar-bg">
-      <LoginForm branding={branding} />
+      <div className="flex flex-col items-center gap-3">
+        {sp.reason === "idle" ? (
+          <div className="max-w-[calc(100vw-32px)] w-[380px] text-[12.5px] text-text-body bg-panel-bg border border-panel-border rounded-lg px-4 py-2.5 text-center">
+            You were signed out after 60 minutes of inactivity. Please sign in again.
+          </div>
+        ) : null}
+        <LoginForm branding={branding} />
+      </div>
     </div>
   );
 }

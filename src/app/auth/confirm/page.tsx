@@ -39,7 +39,7 @@ function ConfirmInner() {
   }, [params, router]);
 
   return (
-    <div className="w-[380px] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm text-center">
+    <div className="w-[380px] max-w-[calc(100vw-24px)] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm text-center">
       <div className="w-12 h-12 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[17px] mx-auto mb-4">
         TM
       </div>

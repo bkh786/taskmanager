@@ -21,9 +21,9 @@ export function BreakdownPanel({
 
   return (
     <div className="bg-panel-bg border border-panel-border rounded-[10px] px-5 py-4.5 mb-5.5">
-      <div className="flex items-center justify-between mb-3.5">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3.5">
         <div className="text-[14.5px] font-bold text-text-main">Breakdown</div>
-        <div className="flex bg-chip-bg rounded-lg p-[3px] gap-0.5">
+        <div className="flex bg-chip-bg rounded-lg p-[3px] gap-0.5 max-w-full overflow-x-auto">
           {tabs.map((t) => (
             <Link
               key={t.id}
@@ -47,7 +47,7 @@ export function BreakdownPanel({
             key={r.label}
             className="flex items-center gap-3.5 py-2.5 border-b border-row-hover-border last:border-b-0"
           >
-            <div className="w-[150px] shrink-0 text-[13px] font-semibold text-text-main truncate">
+            <div className="w-[96px] sm:w-[150px] shrink-0 text-[13px] font-semibold text-text-main truncate">
               {r.label}
             </div>
             <div className="flex-1 h-2 bg-table-head-bg rounded overflow-hidden">
@@ -59,7 +59,7 @@ export function BreakdownPanel({
             <div className="w-[38px] shrink-0 text-right text-[12px] text-text-sub">
               {r.completedPct}%
             </div>
-            <div className="flex gap-2.5 shrink-0 w-[170px] justify-end text-[11.5px] text-text-sub">
+            <div className="hidden sm:flex gap-2.5 shrink-0 w-[170px] justify-end text-[11.5px] text-text-sub">
               {r.delayed ? (
                 <span className="text-danger font-semibold">{r.delayed} delayed</span>
               ) : null}

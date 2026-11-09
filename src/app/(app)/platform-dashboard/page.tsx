@@ -37,14 +37,14 @@ export default async function PlatformDashboardPage() {
         Organization summary and key metrics across every tenant
       </div>
 
-      <div className="grid grid-cols-4 gap-3.5 mb-5.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5.5">
         <StatCard label="Total Tenants" value={stats.totalTenants} />
         <StatCard label="Active Tenants" value={stats.activeTenants} />
         <StatCard label="Total Platform Users" value={stats.totalUsers} />
         <StatCard label="New Tenants (30d)" value={stats.newTenantsLast30Days} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-5.5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5.5">
         <div className="bg-panel-bg border border-panel-border rounded-[10px] p-5.5">
           <div className="text-[14.5px] font-bold text-text-main mb-3.5">
             Billing status summary

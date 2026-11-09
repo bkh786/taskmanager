@@ -111,7 +111,7 @@ export function WelcomeBanner({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl px-7 py-6 mb-6 text-white"
+      className="relative overflow-hidden rounded-2xl px-5 sm:px-7 py-5 sm:py-6 mb-6 text-white"
       style={{
         background:
           "linear-gradient(120deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 55%, #000) 100%)",
@@ -120,7 +120,7 @@ export function WelcomeBanner({
       {/* decorative sun / moon and soft shapes */}
       <div
         aria-hidden="true"
-        className="absolute -right-6 -top-6 w-[150px] h-[150px] rounded-full"
+        className="absolute -right-8 -top-8 w-[90px] h-[90px] sm:-right-6 sm:-top-6 sm:w-[150px] sm:h-[150px] rounded-full"
         style={{
           background: dark
             ? "radial-gradient(circle at 35% 35%, #fff, #dfe6ee 60%, #b8c3d0)"
@@ -153,7 +153,7 @@ export function WelcomeBanner({
             {timeText ? ` · ${timeText} IST` : ""}
           </span>
         </div>
-        <div className="text-[28px] font-extrabold mt-1.5 leading-tight">
+        <div className="text-[22px] sm:text-[28px] font-extrabold mt-1.5 leading-tight">
           {GREETING[part]}, {firstName}!
         </div>
         <div className="mt-2 text-[13.5px] max-w-[640px] opacity-95">

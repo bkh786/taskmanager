@@ -73,7 +73,7 @@ export function UserModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="w-[440px] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-6.5 py-6 shadow-xl">
+      <div className="w-[440px] max-w-[calc(100vw-24px)] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-6.5 py-6 shadow-xl">
         <div className="text-[16px] font-bold text-text-main mb-1">
           {presetTarget ? `Replace ${presetTarget.full_name}` : "Add User"}
         </div>

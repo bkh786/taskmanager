@@ -66,7 +66,7 @@ export function ProjectsDesignationsPanel({
   orgId?: string;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-4 mb-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
       <div className="bg-panel-bg border border-panel-border rounded-[10px] p-4">
         <div className="text-xs font-bold text-text-sub uppercase mb-2.5">Projects</div>
         <div className="flex flex-wrap gap-1.5 mb-3">

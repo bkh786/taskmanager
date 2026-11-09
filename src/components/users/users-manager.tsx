@@ -151,7 +151,7 @@ export function UsersManager({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
           <div className="text-[22px] font-bold text-text-main">User Management</div>
           <div className="text-[13.5px] text-text-sub mt-1">

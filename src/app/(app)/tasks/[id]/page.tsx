@@ -110,7 +110,7 @@ export default async function TaskDetailPage({
       <Link href="/dashboard" className="text-[13px] text-text-sub mb-4 inline-block">
         ← Back to Dashboard
       </Link>
-      <div className="grid grid-cols-[1.4fr_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5 items-start">
         <div className="bg-panel-bg border border-panel-border rounded-[10px] p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="text-[19px] font-bold text-text-main">

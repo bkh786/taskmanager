@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/app/(app)/actions";
+import { ThemeControls } from "@/components/theme-controls";
 
 /** First and last name initials ("Sucheth Ganapathy Rao" -> "SR"). */
 function initialsOf(name: string) {
@@ -54,11 +55,14 @@ export function ProfileMenu({
         {initialsOf(name)}
       </button>
       {open ? (
-        <div className="absolute right-0 top-full mt-2 w-[240px] bg-panel-bg border border-panel-border rounded-lg shadow-lg z-40 py-1.5">
+        <div className="absolute right-0 top-full mt-2 w-[260px] max-w-[calc(100vw-24px)] bg-panel-bg border border-panel-border rounded-lg shadow-lg z-40 py-1.5">
           <div className="px-4 py-2.5 border-b border-panel-border">
             <div className="text-[13.5px] font-semibold text-text-main truncate">{name}</div>
             <div className="text-[12px] text-text-faint truncate">{email}</div>
             <div className="text-[11.5px] text-text-sub mt-0.5">{roleLabel}</div>
+          </div>
+          <div className="px-4 py-3 border-b border-panel-border">
+            <ThemeControls compact />
           </div>
           <Link
             href="/account"

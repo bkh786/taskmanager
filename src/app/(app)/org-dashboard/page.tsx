@@ -60,7 +60,7 @@ export default async function OrgDashboardPage({
           { href: "/org-settings", label: "Organization Settings" },
         ]}
       />
-      <div className="flex items-start justify-between mb-5.5">
+      <div className="flex items-start justify-between flex-wrap gap-4 mb-5.5">
         <div>
           <div className="text-[22px] font-bold text-text-main">Organization Dashboard</div>
           <div className="text-[13.5px] text-text-sub mt-1">

@@ -146,14 +146,14 @@ export function ReportView({
   const activeFilters = Object.entries(colFilters).filter(([, v]) => v.length > 0);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)] min-h-[420px]">
+    <div className="flex flex-col lg:h-[calc(100vh-160px)] lg:min-h-[420px]">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3 shrink-0">
         {heading}
         <ExportButton rows={filtered} appUrl={appUrl} showOrganization={showOrganization} />
       </div>
       <div className="mb-4 shrink-0">{filters}</div>
 
-      <div className="flex-1 min-h-0 flex flex-col bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+      <div className="flex-1 min-h-[460px] lg:min-h-0 flex flex-col bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-panel-border shrink-0 flex-wrap">
           <input
             type="text"

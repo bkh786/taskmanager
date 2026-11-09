@@ -23,7 +23,7 @@ export default async function TenantsPage() {
         <NewTenantModal />
       </div>
 
-      <div className="grid grid-cols-3 gap-3.5 mb-5.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5.5">
         <StatCard label="Active Tenants" value={activeTenants} />
         <StatCard label="Total Seats" value={totalSeats} />
         <StatCard label="On Trial" value={onTrial} />

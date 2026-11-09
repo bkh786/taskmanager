@@ -12,7 +12,7 @@ export function ForgotForm() {
   return (
     <form
       action={formAction}
-      className="w-[380px] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm"
+      className="w-[380px] max-w-[calc(100vw-24px)] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm"
     >
       <div className="flex flex-col items-center gap-3 mb-6">
         <div className="w-12 h-12 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[17px]">

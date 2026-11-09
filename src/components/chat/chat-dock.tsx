@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 type Status = "available" | "away" | "offline";
@@ -142,23 +143,31 @@ export function ChatDock({ me }: { me: { id: string; orgId: string } }) {
   }, [supabase, me.id, ready, addMessages]);
 
   // ---- presence: Available / Away / Offline
+  // Kept fresh without any page reload: a heartbeat every 25s, status
+  // re-evaluated every 30s and on every user action, and automatic re-joining
+  // if the connection drops (phone sleep, network change).
   useEffect(() => {
     if (ready !== "ok") return;
+    let disposed = false;
     let lastActive = Date.now();
     let current: Status = "available";
-    const channel = supabase.channel(`presence:${me.orgId}`, {
-      config: { private: true, presence: { key: me.id } },
-    });
+    let channel: RealtimeChannel | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
 
     const computeStatus = (): Status =>
       document.visibilityState === "visible" && Date.now() - lastActive < IDLE_MS ? "available" : "away";
 
+    const announce = () => {
+      if (channel && channel.state === "joined") {
+        void channel.track({ status: current, at: Date.now() });
+      }
+    };
     const publish = () => {
       const next = computeStatus();
       if (next !== current) {
         current = next;
         setMyStatus(next);
-        void channel.track({ status: next });
+        announce();
       }
     };
     const markActive = () => {
@@ -166,18 +175,36 @@ export function ChatDock({ me }: { me: { id: string; orgId: string } }) {
       publish();
     };
 
-    channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState() as Record<string, { status?: Status }[]>;
+    const connect = () => {
+      if (disposed) return;
+      let dead = false;
+      const ch = supabase.channel(`presence:${me.orgId}`, {
+        config: { private: true, presence: { key: me.id } },
+      });
+      channel = ch;
+      ch.on("presence", { event: "sync" }, () => {
+        const state = ch.presenceState() as Record<string, { status?: Status }[]>;
         const out: Record<string, Status> = {};
         for (const [uid, metas] of Object.entries(state)) {
           out[uid] = metas.some((m) => m.status === "available") ? "available" : "away";
         }
         setPresence(out);
-      })
-      .subscribe((st) => {
-        if (st === "SUBSCRIBED") void channel.track({ status: current });
+      }).subscribe((st) => {
+        if (dead) return;
+        if (st === "SUBSCRIBED") {
+          current = computeStatus();
+          setMyStatus(current);
+          void ch.track({ status: current, at: Date.now() });
+        } else if (st === "CHANNEL_ERROR" || st === "TIMED_OUT" || st === "CLOSED") {
+          dead = true;
+          retry = setTimeout(() => {
+            void supabase.removeChannel(ch);
+            connect();
+          }, 4000);
+        }
       });
+    };
+    connect();
 
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"] as const;
     let throttle = 0;
@@ -190,14 +217,36 @@ export function ChatDock({ me }: { me: { id: string; orgId: string } }) {
     };
     events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
     document.addEventListener("visibilitychange", markActive);
-    const timer = setInterval(publish, 30_000);
+    window.addEventListener("online", announce);
+    const statusTimer = setInterval(publish, 30_000);
+    const heartbeat = setInterval(announce, 25_000);
 
     return () => {
+      disposed = true;
+      if (retry) clearTimeout(retry);
       events.forEach((e) => window.removeEventListener(e, onActivity));
       document.removeEventListener("visibilitychange", markActive);
-      clearInterval(timer);
-      void supabase.removeChannel(channel);
+      window.removeEventListener("online", announce);
+      clearInterval(statusTimer);
+      clearInterval(heartbeat);
+      if (channel) void supabase.removeChannel(channel);
     };
+  }, [supabase, me.id, me.orgId, ready]);
+
+  // ---- pick up newly added people without a reload
+  useEffect(() => {
+    if (ready !== "ok") return;
+    const timer = setInterval(async () => {
+      const { data } = await supabase
+        .from("app_users")
+        .select("id, full_name, email")
+        .eq("org_id", me.orgId)
+        .eq("is_active", true)
+        .neq("id", me.id)
+        .order("full_name");
+      if (data) setPeople(data);
+    }, 5 * 60_000);
+    return () => clearInterval(timer);
   }, [supabase, me.id, me.orgId, ready]);
 
   // ---- open a conversation: fetch its history
@@ -565,7 +614,7 @@ export function ChatDock({ me }: { me: { id: string; orgId: string } }) {
             title="Collapse"
             className="border-none bg-transparent text-white cursor-pointer text-[18px] px-1.5 leading-none"
           >
-            ▾
+            −
           </button>
         </div>
       </div>

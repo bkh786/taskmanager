@@ -69,7 +69,7 @@ export function TableView({ tasks }: { tasks: TaskGroup[] }) {
   );
 
   return (
-    <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+    <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-x-auto">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-panel-border flex-wrap">
         {chip("all", "All open", tasks.length)}
         {chip("delayed", "Delayed", delayedCount)}

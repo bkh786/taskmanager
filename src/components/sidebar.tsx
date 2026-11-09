@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
 
-function navFor(role: AppUser["system_role"]) {
+export function navFor(role: AppUser["system_role"]) {
   switch (role) {
     case "platform_owner":
       return [
@@ -66,7 +66,7 @@ function iconKeyFor(href: string): string {
   return "dashboard";
 }
 
-function NavIcon({ href }: { href: string }) {
+export function NavIcon({ href }: { href: string }) {
   return (
     <svg
       width="20"
@@ -94,7 +94,7 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
   return (
     // Fixed-width slot keeps the page layout stable; the panel inside expands
     // over the content on hover/keyboard focus.
-    <div className="relative w-[64px] shrink-0">
+    <div className="relative w-[64px] shrink-0 hidden md:block">
     <aside className="group absolute inset-y-0 left-0 z-30 w-[64px] hover:w-[232px] focus-within:w-[232px] overflow-hidden transition-[width] duration-200 bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3 hover:shadow-lg">
       <div className="flex items-center gap-2.5 px-1 pb-5 pt-1">
         <div className="w-8 h-8 rounded-[8px] bg-accent text-white flex items-center justify-center font-bold text-[13px] shrink-0">

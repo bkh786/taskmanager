@@ -18,15 +18,11 @@ const FALLBACK: Quote[] = [
 
 const WORKPLACE = /\b(work|team|success|goal|effort|persever|progress|discipline|action|focus|courage|improv|achiev|dedicat|commit|excellen|lead|together|hard)/i;
 
-function istDayNumber(): number {
-  const ist = new Date(Date.now() + 5.5 * 3600 * 1000);
-  return Math.floor(ist.getTime() / 86_400_000);
-}
-
 async function fetchJson(url: string): Promise<unknown> {
   const res = await fetch(url, {
-    // One request a day is plenty; the same quote is shown to everyone all day.
-    next: { revalidate: 86_400 },
+    // The service hands out a batch of ~50 quotes; keep that batch for an hour
+    // (their free tier is rate limited) and pick a different one per page load.
+    next: { revalidate: 3600 },
     signal: AbortSignal.timeout(4000),
   });
   if (!res.ok) throw new Error(String(res.status));
@@ -43,24 +39,18 @@ function clean(items: unknown): Quote[] {
 }
 
 /**
- * One motivational line for the day, pulled from ZenQuotes and narrowed to
- * work/teamwork/effort themes; a curated list steps in if the service is down.
+ * A fresh motivational line on every page load / login, picked at random from
+ * ZenQuotes (narrowed to work/teamwork/effort themes). Nothing is stored; a
+ * curated list steps in if the service is down.
  */
 export async function getThoughtOfTheDay(): Promise<Quote> {
-  const day = istDayNumber();
   try {
     const all = clean(await fetchJson("https://zenquotes.io/api/quotes"));
     const themed = all.filter((q) => WORKPLACE.test(q.text));
     const pool = themed.length >= 3 ? themed : all;
-    if (pool.length > 0) return pool[day % pool.length];
+    if (pool.length > 0) return pool[Math.floor(Math.random() * pool.length)];
   } catch {
     // fall through
   }
-  try {
-    const today = clean(await fetchJson("https://zenquotes.io/api/today"));
-    if (today.length > 0) return today[0];
-  } catch {
-    // fall through
-  }
-  return FALLBACK[day % FALLBACK.length];
+  return FALLBACK[Math.floor(Math.random() * FALLBACK.length)];
 }

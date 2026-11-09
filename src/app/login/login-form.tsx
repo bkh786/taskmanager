@@ -14,7 +14,7 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
   return (
     <form
       action={formAction}
-      className="w-[380px] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm"
+      className="w-[380px] max-w-[calc(100vw-24px)] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm"
     >
       <div className="flex flex-col items-center gap-3 mb-7">
         {branding?.logoUrl ? (

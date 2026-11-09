@@ -29,7 +29,7 @@ export function NewTenantModal() {
       </button>
       {open ? (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="w-[480px] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-6.5 py-6 shadow-xl">
+          <div className="w-[480px] max-w-[calc(100vw-24px)] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-6.5 py-6 shadow-xl">
             <div className="text-[16px] font-bold text-text-main mb-1">
               New Tenant
             </div>

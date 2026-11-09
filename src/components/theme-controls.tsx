@@ -9,7 +9,7 @@ const THEMES = [
   { id: "amber", swatch: "oklch(0.58 0.15 70)" },
 ] as const;
 
-export function ThemeControls() {
+export function ThemeControls({ compact = false }: { compact?: boolean }) {
   // Read once from the DOM attributes the layout's inline theme-init script
   // already set before hydration (see app/layout.tsx), so this never touches
   // localStorage synchronously in an effect and never disagrees with the SSR
@@ -39,7 +39,8 @@ export function ThemeControls() {
   }
 
   return (
-    <div className="flex items-center gap-3.5">
+    <div className={compact ? "flex flex-col gap-3" : "flex items-center gap-3.5"}>
+      <div className="flex items-center justify-between gap-3.5">
       <span className="text-[11.5px] font-semibold text-text-sub">Theme</span>
       <div className="flex gap-1.5">
         {THEMES.map((t) => (
@@ -58,6 +59,9 @@ export function ThemeControls() {
           />
         ))}
       </div>
+      </div>
+      <div className="flex items-center justify-between gap-3.5">
+      <span className="text-[11.5px] font-semibold text-text-sub">Dark mode</span>
       <button
         type="button"
         onClick={toggleDark}
@@ -72,7 +76,7 @@ export function ThemeControls() {
           style={{ left: dark ? "18px" : "2px" }}
         />
       </button>
-      <span className="text-[11.5px] font-semibold text-text-sub">Dark mode</span>
+      </div>
     </div>
   );
 }
