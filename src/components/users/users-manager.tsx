@@ -7,6 +7,7 @@ import { UserModal } from "./user-modal";
 import { EditUserModal } from "./edit-user-modal";
 import { ProjectsDesignationsPanel } from "./projects-designations-panel";
 import { ExportUsersButton } from "./export-users-button";
+import { useColumnFilters, type FilterCol } from "@/components/table-filters";
 import { BulkUsersUploadForm } from "@/components/bulk-upload-users/upload-form";
 
 const ROLE_LABELS: Record<AppUser["system_role"], string> = {
@@ -27,6 +28,8 @@ type SortKey =
   | "designation"
   | "manager";
 type SortDir = "asc" | "desc";
+
+const dash = (v: string | null | undefined) => v || "—";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "full_name", label: "Name" },
@@ -102,10 +105,17 @@ export function UsersManager({
   const [sortKey, setSortKey] = useState<SortKey>("full_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
+  const filterCols: FilterCol<Employee>[] = COLUMNS.map((c) => ({
+    key: c.key,
+    label: c.label,
+    value: (u) => dash(sortValue(u, c.key)),
+  }));
+  const colFilters = useColumnFilters(users, filterCols);
+
   const visibleUsers = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     const filtered = q
-      ? users.filter((u) =>
+      ? colFilters.filtered.filter((u) =>
           [
             u.full_name,
             u.employee_code,
@@ -119,7 +129,7 @@ export function UsersManager({
             .toLowerCase()
             .includes(q)
         )
-      : users;
+      : colFilters.filtered;
 
     const sorted = [...filtered].sort((a, b) => {
       const cmp = sortValue(a, sortKey).localeCompare(sortValue(b, sortKey), undefined, {
@@ -128,7 +138,7 @@ export function UsersManager({
       return sortDir === "asc" ? cmp : -cmp;
     });
     return sorted;
-  }, [users, debouncedSearch, sortKey, sortDir]);
+  }, [colFilters.filtered, debouncedSearch, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -197,6 +207,7 @@ export function UsersManager({
                   key={c.key}
                   className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase border-b border-panel-border"
                 >
+                  <span className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => toggleSort(c.key)}
@@ -207,6 +218,8 @@ export function UsersManager({
                       {sortKey === c.key ? (sortDir === "asc" ? "▲" : "▼") : ""}
                     </span>
                   </button>
+                  {colFilters.headerButton(c.key)}
+                  </span>
                 </th>
               ))}
               <th className="sticky right-0 bg-table-head-bg px-4 py-2.5 border-b border-panel-border" />
@@ -300,6 +313,8 @@ export function UsersManager({
           </div>
         </div>
       ) : null}
+
+      {colFilters.menu}
 
       {modal.kind === "add" || modal.kind === "replace" ? (
         <UserModal

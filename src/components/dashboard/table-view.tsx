@@ -3,9 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { TaskGroup } from "@/lib/dashboard-data";
-import { bucketOf, fmtDate } from "@/lib/task-status";
+import { BUCKET_META, bucketOf, fmtDate } from "@/lib/task-status";
+import { useColumnFilters, type FilterCol } from "@/components/table-filters";
 import { StatusBadge } from "./status-badge";
 import { RecurrenceBadge } from "./recurrence-badge";
+
+const COLS: (FilterCol<TaskGroup> & { header: string })[] = [
+  { key: "task", header: "Task", label: "Task", value: (t) => t.taskName },
+  {
+    key: "recurrence",
+    header: "Recurrence",
+    label: "Recurrence",
+    value: (t) => (t.isRecurring ? t.recurrenceKind.replace("_", " ") : "one time"),
+  },
+  { key: "assignee", header: "Assignee", label: "Assignee", value: (t) => t.assigneeName },
+  { key: "project", header: "Project", label: "Project", value: (t) => t.projectName ?? "—" },
+  { key: "due", header: "Due date", label: "Due date", value: (t) => fmtDate(t.representative.due_date) },
+  {
+    key: "status",
+    header: "Status",
+    label: "Status",
+    value: (t) => BUCKET_META[bucketOf(t.representative)].label,
+  },
+];
 
 const PAGE_SIZES = [10, 25, 50, 100];
 type Filter = "all" | "delayed" | "pending";
@@ -16,11 +36,12 @@ export function TableView({ tasks }: { tasks: TaskGroup[] }) {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
 
+  const cf = useColumnFilters(tasks, COLS, () => setPage(1));
   const isDelayed = (t: TaskGroup) => bucketOf(t.representative) === "delayed";
   const delayedCount = tasks.filter(isDelayed).length;
   const pendingCount = tasks.length - delayedCount;
 
-  const visible = tasks.filter((t) =>
+  const visible = cf.filtered.filter((t) =>
     filter === "all" ? true : filter === "delayed" ? isDelayed(t) : !isDelayed(t)
   );
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
@@ -53,16 +74,28 @@ export function TableView({ tasks }: { tasks: TaskGroup[] }) {
         {chip("all", "All open", tasks.length)}
         {chip("delayed", "Delayed", delayedCount)}
         {chip("pending", "Pending", pendingCount)}
+        {cf.activeCount > 0 ? (
+          <button
+            type="button"
+            onClick={cf.clearAll}
+            className="text-[12px] text-accent font-semibold cursor-pointer bg-transparent border-none"
+          >
+            Clear column filters ({cf.activeCount})
+          </button>
+        ) : null}
       </div>
       <table className="w-full border-collapse">
         <thead>
           <tr className="bg-table-head-bg">
-            {["Task", "Recurrence", "Assignee", "Project", "Due date", "Status"].map((h) => (
+            {COLS.map((c) => (
               <th
-                key={h}
+                key={c.key}
                 className="text-left px-4 py-2.5 text-[11.5px] font-bold text-text-sub uppercase tracking-wide border-b border-panel-border"
               >
-                {h}
+                <span className="flex items-center gap-1.5">
+                  {c.header}
+                  {cf.headerButton(c.key)}
+                </span>
               </th>
             ))}
           </tr>
@@ -152,6 +185,7 @@ export function TableView({ tasks }: { tasks: TaskGroup[] }) {
           </button>
         </div>
       </div>
+      {cf.menu}
     </div>
   );
 }
