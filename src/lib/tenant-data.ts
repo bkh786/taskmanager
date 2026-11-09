@@ -117,12 +117,14 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
   const { data, error } = await admin
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name), designation:designations(name)"
     )
     .eq("org_id", orgId)
     .order("full_name");
   if (error) throw error;
-  return (data ?? []).map((r) => ({
+  const rows = data ?? [];
+  const nameById = new Map(rows.map((r) => [r.id, r.full_name]));
+  return rows.map((r) => ({
     id: r.id,
     full_name: r.full_name,
     email: r.email,
@@ -133,6 +135,8 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
+    designation_name: (r.designation as { name: string } | null)?.name ?? null,
+    manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));
 }
 

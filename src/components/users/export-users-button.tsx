@@ -20,6 +20,8 @@ export function ExportUsersButton({ users }: { users: Employee[] }) {
       Email: u.email,
       Role: ROLE_LABELS[u.system_role],
       Project: u.project_name ?? "",
+      Designation: u.designation_name ?? "",
+      "Reporting Manager": u.manager_name ?? "",
       Status: u.is_active ? "Active" : "Inactive",
     }));
     const ws = XLSX.utils.json_to_sheet(data);

@@ -17,7 +17,14 @@ const ROLE_LABELS: Record<AppUser["system_role"], string> = {
 
 type ModalState = { kind: "none" } | { kind: "add" } | { kind: "replace" | "edit"; target: Employee };
 
-type SortKey = "full_name" | "employee_code" | "email" | "role" | "project";
+type SortKey =
+  | "full_name"
+  | "employee_code"
+  | "email"
+  | "role"
+  | "project"
+  | "designation"
+  | "manager";
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string }[] = [
@@ -26,6 +33,8 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "email", label: "Email" },
   { key: "role", label: "Role" },
   { key: "project", label: "Project" },
+  { key: "designation", label: "Designation" },
+  { key: "manager", label: "Reporting Manager" },
 ];
 
 function sortValue(u: Employee, key: SortKey): string {
@@ -40,6 +49,10 @@ function sortValue(u: Employee, key: SortKey): string {
       return ROLE_LABELS[u.system_role];
     case "project":
       return u.project_name ?? "";
+    case "designation":
+      return u.designation_name ?? "";
+    case "manager":
+      return u.manager_name ?? "";
   }
 }
 
@@ -85,7 +98,15 @@ export function UsersManager({
     const q = debouncedSearch.trim().toLowerCase();
     const filtered = q
       ? users.filter((u) =>
-          [u.full_name, u.employee_code, u.email, ROLE_LABELS[u.system_role], u.project_name ?? ""]
+          [
+            u.full_name,
+            u.employee_code,
+            u.email,
+            ROLE_LABELS[u.system_role],
+            u.project_name ?? "",
+            u.designation_name ?? "",
+            u.manager_name ?? "",
+          ]
             .join(" ")
             .toLowerCase()
             .includes(q)
@@ -144,7 +165,7 @@ export function UsersManager({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, employee code, email, role, or project…"
+          placeholder="Search by name, code, email, role, project, designation or manager…"
           className="w-full max-w-[420px] px-3 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
         />
       </div>
@@ -176,7 +197,7 @@ export function UsersManager({
           <tbody>
             {visibleUsers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[13px] text-text-faint">
+                <td colSpan={8} className="px-4 py-6 text-center text-[13px] text-text-faint">
                   {users.length === 0 ? "No users yet." : "No users match your search."}
                 </td>
               </tr>
@@ -202,6 +223,12 @@ export function UsersManager({
                   </td>
                   <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
                     {u.project_name ?? "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
+                    {u.designation_name ?? "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
+                    {u.manager_name ?? "—"}
                   </td>
                   <td className="px-4 py-2.5 border-b border-row-hover-border text-right">
                     <div className="flex gap-2 justify-end">

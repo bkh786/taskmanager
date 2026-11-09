@@ -13,6 +13,9 @@ export type Employee = {
   designation_id: string | null;
   is_active: boolean;
   reports_to: string | null;
+  /** Filled in by the user-management listings (getOrgUsers / getTenantUsers). */
+  designation_name?: string | null;
+  manager_name?: string | null;
 };
 
 /**
@@ -103,30 +106,58 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     const rows = data ?? [];
     const projectIds = [...new Set(rows.map((r) => r.project_id).filter(Boolean))] as string[];
     const projectNames = await getProjectNameMap(projectIds);
-    return rows.map((r) => ({
-      id: r.id,
-      full_name: r.full_name,
-      email: r.email,
-      employee_code: r.employee_code,
-      system_role: r.system_role,
-      project_id: r.project_id,
-      project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
-      designation_id: r.designation_id,
-      is_active: r.is_active,
-      reports_to: null,
-    }));
+
+    // The reporting-chain function doesn't return who each person reports to
+    // or their designation name, so look those up for just these people.
+    const ids = rows.map((r) => r.id);
+    const { data: extra } = ids.length
+      ? await supabase
+          .from("app_users")
+          .select("id, reports_to, designation:designations(name)")
+          .in("id", ids)
+      : { data: [] };
+    const extraById = new Map((extra ?? []).map((e) => [e.id, e]));
+    const managerIds = [
+      ...new Set((extra ?? []).map((e) => e.reports_to).filter((id): id is string => !!id)),
+    ];
+    const { data: managers } = managerIds.length
+      ? await supabase.from("app_users").select("id, full_name").in("id", managerIds)
+      : { data: [] };
+    const managerNames = new Map((managers ?? []).map((m) => [m.id, m.full_name]));
+
+    return rows.map((r) => {
+      const e = extraById.get(r.id);
+      return {
+        id: r.id,
+        full_name: r.full_name,
+        email: r.email,
+        employee_code: r.employee_code,
+        system_role: r.system_role,
+        project_id: r.project_id,
+        project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
+        designation_id: r.designation_id,
+        is_active: r.is_active,
+        reports_to: e?.reports_to ?? null,
+        designation_name: (e?.designation as { name: string } | null)?.name ?? null,
+        manager_name: e?.reports_to ? (managerNames.get(e.reports_to) ?? null) : null,
+      };
+    });
   }
 
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name), designation:designations(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .order("full_name");
   if (error) throw error;
 
-  return (data ?? []).map((r) => ({
+  const rows = data ?? [];
+  // Self-referencing joins aren't supported by the API, but this list already
+  // holds everyone in the org, so manager names come from it.
+  const nameById = new Map(rows.map((r) => [r.id, r.full_name]));
+  return rows.map((r) => ({
     id: r.id,
     full_name: r.full_name,
     email: r.email,
@@ -137,6 +168,8 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
+    designation_name: (r.designation as { name: string } | null)?.name ?? null,
+    manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));
 }
 
