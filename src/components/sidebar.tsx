@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
+import { useChatOptional } from "@/components/chat/chat-provider";
 
 export function navFor(role: AppUser["system_role"]) {
   switch (role) {
@@ -19,6 +20,7 @@ export function navFor(role: AppUser["system_role"]) {
         { href: "/org-settings", label: "Organization Settings" },
         { href: "/users", label: "User Management" },
         { href: "/reports", label: "Reports" },
+        { href: "/team-chat", label: "Team Chat" },
       ];
     case "reporting_manager":
       return [
@@ -26,17 +28,20 @@ export function navFor(role: AppUser["system_role"]) {
         { href: "/users", label: "User Management" },
         { href: "/bulk-copy", label: "Bulk Task Copy" },
         { href: "/reports", label: "Reports" },
+        { href: "/team-chat", label: "Team Chat" },
       ];
     case "user":
       return [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/reports", label: "Reports" },
+        { href: "/team-chat", label: "Team Chat" },
       ];
   }
 }
 
 
 const ICON_PATHS: Record<string, string[]> = {
+  chat: ["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", "M8 9h8", "M8 13h5"],
   // dashboard grid
   dashboard: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
   // building / org settings (gear)
@@ -57,6 +62,7 @@ const ICON_PATHS: Record<string, string[]> = {
 };
 
 function iconKeyFor(href: string): string {
+  if (href.includes("team-chat")) return "chat";
   if (href.includes("bulk-upload")) return "upload";
   if (href.includes("bulk-copy")) return "copy";
   if (href.includes("report")) return "reports";
@@ -90,6 +96,8 @@ export function NavIcon({ href }: { href: string }) {
 export function Sidebar({ appUser }: { appUser: AppUser }) {
   const pathname = usePathname();
   const nav = navFor(appUser.system_role);
+  const chat = useChatOptional();
+  const unread = chat?.totalUnread ?? 0;
 
   return (
     // Fixed-width slot keeps the page layout stable; the panel inside expands
@@ -118,7 +126,14 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
                 color: active ? "var(--accent)" : "var(--text-body)",
               }}
             >
-              <NavIcon href={item.href} />
+              <span className="relative shrink-0">
+                <NavIcon href={item.href} />
+                {item.href === "/team-chat" && unread > 0 ? (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                ) : null}
+              </span>
               <span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
                 {item.label}
               </span>

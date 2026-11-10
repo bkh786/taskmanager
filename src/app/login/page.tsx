@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCurrentAppUser, roleHome } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./login-form";
+import { LoginShowcase } from "./login-showcase";
 
 export type OrgBranding = { name: string; logoUrl: string | null };
 
@@ -32,15 +33,19 @@ export default async function LoginPage({
   const branding = await getOrgBranding(slug);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sidebar-bg">
-      <div className="flex flex-col items-center gap-3">
+    <div className="min-h-dvh grid grid-cols-1 lg:grid-cols-[2fr_3fr] bg-panel-bg">
+      <div className="flex flex-col justify-center items-center px-6 py-10 sm:px-12 gap-4">
         {sp.reason === "idle" ? (
-          <div className="max-w-[calc(100vw-32px)] w-[380px] text-[12.5px] text-text-body bg-panel-bg border border-panel-border rounded-lg px-4 py-2.5 text-center">
+          <div className="w-full max-w-[400px] text-[12.5px] text-text-body bg-chip-bg border border-panel-border rounded-lg px-4 py-2.5">
             You were signed out after 60 minutes of inactivity. Please sign in again.
           </div>
         ) : null}
         <LoginForm branding={branding} />
+        <div className="w-full max-w-[400px] text-[11.5px] text-text-faint mt-6">
+          © {new Date().getFullYear()} {branding?.name ?? "Task Manager"}
+        </div>
       </div>
+      <LoginShowcase />
     </div>
   );
 }

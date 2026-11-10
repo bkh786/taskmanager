@@ -5,6 +5,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { ProfileMenu } from "@/components/profile-menu";
 import { IdleLogout } from "@/components/idle-logout";
 import { ChatDock } from "@/components/chat/chat-dock";
+import { ChatProvider } from "@/components/chat/chat-provider";
 
 const ROLE_LABELS = {
   platform_owner: "Platform Owner",
@@ -21,7 +22,13 @@ export default async function AppLayout({
   const appUser = await getCurrentAppUser();
   if (!appUser) redirect("/login");
 
+  const chatMe =
+    appUser.org_id && appUser.system_role !== "platform_owner"
+      ? { id: appUser.id, orgId: appUser.org_id }
+      : null;
+
   return (
+    <ChatProvider me={chatMe}>
     <div className="flex h-dvh bg-body-bg">
       <Sidebar appUser={appUser} />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 pb-15">
@@ -36,9 +43,8 @@ export default async function AppLayout({
         {children}
       </main>
       <IdleLogout />
-      {appUser.org_id && appUser.system_role !== "platform_owner" ? (
-        <ChatDock me={{ id: appUser.id, orgId: appUser.org_id }} />
-      ) : null}
+      {chatMe ? <ChatDock /> : null}
     </div>
+    </ChatProvider>
   );
 }

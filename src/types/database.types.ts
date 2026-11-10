@@ -115,23 +115,30 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          delivered_at: string | null
+          forwarded: boolean
           id: string
           org_id: string
           read_at: string | null
           recipient_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
           body: string
           created_at?: string
+          delivered_at?: string | null
+          forwarded?: boolean
           id?: string
           org_id: string
           read_at?: string | null
           recipient_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
           read_at?: string | null
+          delivered_at?: string | null
         }
         Relationships: []
       }

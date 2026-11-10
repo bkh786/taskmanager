@@ -14,9 +14,9 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
   return (
     <form
       action={formAction}
-      className="w-[380px] max-w-[calc(100vw-24px)] bg-panel-bg border border-panel-border rounded-xl px-8 py-9 shadow-sm"
+      className="w-full max-w-[400px]"
     >
-      <div className="flex flex-col items-center gap-3 mb-7">
+      <div className="flex flex-col items-start gap-4 mb-8">
         {branding?.logoUrl ? (
           // Natural aspect ratio, bounded by max-height/max-width -- logos
           // vary per org (square, circular, wide rectangular banners) and
@@ -32,12 +32,12 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
             {branding ? branding.name.slice(0, 2).toUpperCase() : "TM"}
           </div>
         )}
-        <div className="text-center">
-          <div className="text-[18px] font-bold text-text-main">
+        <div>
+          <div className="text-[26px] font-extrabold text-text-main leading-tight">
             {branding?.name ?? "Task Manager"}
           </div>
-          <div className="text-[13px] text-text-sub mt-0.5">
-            Sign in to your workspace
+          <div className="text-[14px] text-text-sub mt-1">
+            Welcome back. Sign in to your workspace
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
             required
             autoComplete="username"
             placeholder="you@company.com"
-            className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-sm text-text-main bg-panel-bg"
+            className="w-full px-3 py-3 border border-panel-border rounded-lg text-sm text-text-main bg-panel-bg"
           />
         </div>
         <div>
@@ -66,7 +66,7 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
             required
             autoComplete="current-password"
             placeholder="••••••••"
-            className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-sm text-text-main bg-panel-bg"
+            className="w-full px-3 py-3 border border-panel-border rounded-lg text-sm text-text-main bg-panel-bg"
           />
         </div>
         <div className="text-right -mt-1.5">
@@ -80,13 +80,13 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
         <button
           type="submit"
           disabled={pending}
-          className="mt-1.5 w-full py-2.5 bg-accent hover:bg-accent-hover text-white rounded-md text-sm font-semibold cursor-pointer disabled:opacity-60"
+          className="mt-1.5 w-full py-3 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-60"
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>
       </div>
 
-      <div className="text-center text-xs text-text-faint mt-5">
+      <div className="text-xs text-text-faint mt-6">
         Multi-tenant workspace · role is determined by your account
       </div>
     </form>
