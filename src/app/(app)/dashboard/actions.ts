@@ -236,6 +236,7 @@ export async function completeTaskInstance(
           orgId,
           event: "task_completed",
           to: creator.email,
+          subjectEmail: appUser.email,
           taskInstanceId: instanceId,
           extraCc: parseEmailList(task.notification_cc),
           vars,
@@ -312,6 +313,7 @@ export async function requestDateChange(
           orgId,
           event: "date_change_requested",
           to: creator.email,
+          subjectEmail: appUser.email,
           taskInstanceId: instanceId,
           vars,
         })

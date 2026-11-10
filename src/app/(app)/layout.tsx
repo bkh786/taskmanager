@@ -45,10 +45,10 @@ export default async function AppLayout({
   return (
     <ChatProvider me={chatMe}>
     <div className="flex flex-1 min-h-0 bg-body-bg">
-      <Sidebar appUser={appUser} org={org} />
+      <Sidebar appUser={appUser} />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 pb-15">
         <div className="flex items-center gap-3 mb-4.5">
-          <MobileNav role={appUser.system_role} org={org} />
+          <MobileNav role={appUser.system_role} />
           <OrgBrandBar name={org.name} logoUrl={org.logoUrl} />
           <ProfileMenu
             name={appUser.full_name}

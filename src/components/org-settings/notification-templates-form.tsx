@@ -100,8 +100,10 @@ export function NotificationTemplatesForm({
         <div className="text-[12.5px] text-text-sub">
           Choose which emails are sent and edit their wording. Placeholders such as{" "}
           <code className="text-[12px]">{"{{task_name}}"}</code> are filled in automatically.
-          For each email, tick whether the recipient&apos;s reporting managers are copied: L1 is
-          the person they report to, L2 is that person&apos;s manager. Task creators can also add
+          For each email, tick which reporting managers are copied. L1 is the manager of the person
+          the email is about, L2 is that manager&apos;s manager. For task emails that person is the
+          assignee (the one who completes or asks to reschedule); for account and reminder emails it
+          is the recipient. Task creators can also add
           extra Cc recipients and switch off the completion email on each task.
         </div>
       </div>

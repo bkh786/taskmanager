@@ -7,13 +7,14 @@
   --accent-hover: oklch(0.42 var(--accent-c) var(--accent-h));
   --accent-soft: oklch(0.94 0.03 var(--accent-h));
 
-  --body-bg: #fafaf9;
-  --sidebar-bg: #f5f4f2;
+  /* Surfaces take a light tint of the selected theme colour. */
+  --body-bg: oklch(0.972 0.015 var(--accent-h));
+  --sidebar-bg: oklch(0.953 0.024 var(--accent-h));
   --panel-bg: #ffffff;
-  --panel-border: #e5e5e3;
-  --row-hover-border: #f0efed;
-  --table-head-bg: #f9f8f7;
-  --chip-bg: #f0efed;
+  --panel-border: oklch(0.905 0.018 var(--accent-h));
+  --row-hover-border: oklch(0.945 0.014 var(--accent-h));
+  --table-head-bg: oklch(0.967 0.017 var(--accent-h));
+  --chip-bg: oklch(0.945 0.022 var(--accent-h));
 
   --text-main: #1c1c1a;
   --text-body: #3f3e3a;
@@ -42,13 +43,15 @@
 }
 
 :root[data-mode="dark"] {
-  --body-bg: #161614;
-  --sidebar-bg: #1c1c1a;
-  --panel-bg: #201f1d;
-  --panel-border: #35342f;
-  --row-hover-border: #2a2926;
-  --table-head-bg: #262521;
-  --chip-bg: #2a2926;
+  color-scheme: dark;
+  /* Dark mode: deep surfaces that carry a hint of the theme colour. */
+  --body-bg: oklch(0.19 0.024 var(--accent-h));
+  --sidebar-bg: oklch(0.225 0.028 var(--accent-h));
+  --panel-bg: oklch(0.255 0.026 var(--accent-h));
+  --panel-border: oklch(0.34 0.032 var(--accent-h));
+  --row-hover-border: oklch(0.295 0.026 var(--accent-h));
+  --table-head-bg: oklch(0.28 0.028 var(--accent-h));
+  --chip-bg: oklch(0.31 0.03 var(--accent-h));
 
   --text-main: #f2f1ee;
   --text-body: #cfcec8;

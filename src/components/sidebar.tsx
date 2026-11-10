@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
-import { OrgLogo } from "@/components/org-logo";
 import { useChatOptional } from "@/components/chat/chat-provider";
 
 export function navFor(role: AppUser["system_role"]) {
@@ -94,13 +93,7 @@ export function NavIcon({ href }: { href: string }) {
   );
 }
 
-export function Sidebar({
-  appUser,
-  org,
-}: {
-  appUser: AppUser;
-  org: { name: string; logoUrl: string | null };
-}) {
+export function Sidebar({ appUser }: { appUser: AppUser }) {
   const pathname = usePathname();
   const nav = navFor(appUser.system_role);
   const chat = useChatOptional();
@@ -108,16 +101,15 @@ export function Sidebar({
 
   return (
     // Fixed-width slot keeps the page layout stable; the panel inside expands
-    // over the content on hover/keyboard focus.
+    // over the content on hover (or keyboard focus).
     <div className="relative w-[64px] shrink-0 hidden md:block">
-    <aside className="group absolute inset-y-0 left-0 z-30 w-[64px] hover:w-[232px] focus-within:w-[232px] overflow-hidden transition-[width] duration-200 bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3 hover:shadow-lg">
-      <div className="px-0.5 pb-5 pt-1 h-[66px] shrink-0">
-        {/* icon slot while collapsed; the full logo (any shape) once expanded */}
-        <div className="group-hover:hidden group-focus-within:hidden">
-          <OrgLogo logoUrl={org.logoUrl} name={org.name} collapsed />
+    <aside className="group absolute inset-y-0 left-0 z-30 w-[64px] hover:w-[232px] has-[:focus-visible]:w-[232px] overflow-hidden transition-[width] duration-200 bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3 hover:shadow-lg">
+      <div className="px-0.5 pb-5 pt-1 h-[66px] shrink-0 flex items-center gap-2.5">
+        <div className="w-10 h-10 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[14px] shrink-0">
+          TM
         </div>
-        <div className="hidden group-hover:block group-focus-within:block">
-          <OrgLogo logoUrl={org.logoUrl} name={org.name} />
+        <div className="text-sm font-bold text-text-main whitespace-nowrap opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 transition-opacity duration-150">
+          Task Manager
         </div>
       </div>
 
@@ -144,7 +136,7 @@ export function Sidebar({
                   </span>
                 ) : null}
               </span>
-              <span className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
+              <span className="opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 transition-opacity duration-150">
                 {item.label}
               </span>
             </Link>

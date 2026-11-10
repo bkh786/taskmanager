@@ -3,18 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { OrgLogo } from "@/components/org-logo";
 import { navFor, NavIcon } from "@/components/sidebar";
 import type { AppUser } from "@/lib/auth";
 
 /** Phone/tablet navigation: a menu button that opens a slide-in drawer. */
-export function MobileNav({
-  role,
-  org,
-}: {
-  role: AppUser["system_role"];
-  org: { name: string; logoUrl: string | null };
-}) {
+export function MobileNav({ role }: { role: AppUser["system_role"] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const nav = navFor(role);
@@ -35,7 +28,12 @@ export function MobileNav({
         <div className="fixed inset-0 z-50 flex">
           <div className="w-[260px] max-w-[80vw] bg-sidebar-bg border-r border-panel-border flex flex-col py-5 px-3.5 shadow-xl">
             <div className="flex items-center justify-between px-1 pb-5">
-              <OrgLogo logoUrl={org.logoUrl} name={org.name} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[14px]">
+                  TM
+                </div>
+                <div className="text-sm font-bold text-text-main">Task Manager</div>
+              </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

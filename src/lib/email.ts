@@ -304,6 +304,12 @@ export async function sendOrgEvent(opts: {
   taskInstanceId?: string | null;
   /** Extra CC addresses for this message (e.g. a task creator's own list). */
   extraCc?: string[];
+  /**
+   * Whose reporting managers the L1/L2 Cc/Bcc ticks refer to: the person the
+   * email is ABOUT. Defaults to the recipient (right for account and reminder
+   * emails); task-completed and date-change emails pass the assignee.
+   */
+  subjectEmail?: string;
 }): Promise<SendResult> {
   try {
     const def = getEventDef(opts.event);
@@ -357,7 +363,7 @@ export async function sendOrgEvent(opts: {
     // they report to, L2 = that person's manager).
     const t = tpl as { cc_l1?: boolean; cc_l2?: boolean; bcc_l1?: boolean; bcc_l2?: boolean } | null;
     if (t && (t.cc_l1 || t.cc_l2 || t.bcc_l1 || t.bcc_l2)) {
-      const mgr = await managerEmails(cfg.id, opts.to);
+      const mgr = await managerEmails(cfg.id, opts.subjectEmail ?? opts.to);
       if (t.cc_l1 && mgr.l1) cc.add(mgr.l1);
       if (t.cc_l2 && mgr.l2) cc.add(mgr.l2);
       if (t.bcc_l1 && mgr.l1) bcc.add(mgr.l1);
