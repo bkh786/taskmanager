@@ -139,3 +139,20 @@ button {
 
 .tm-signin { background: #0b0b0c; transition: box-shadow 0.15s, background 0.15s; }
 .tm-signin:hover { background: #17171a; box-shadow: inset 0 0 0 2px #D4AF37; }
+
+/* Organization name in the top bar: rises in, then a soft accent wave repeats. */
+@keyframes tm-org-wave {
+  0%, 100% { color: var(--text-main); }
+  40% { color: var(--accent); }
+}
+.tm-org-letter {
+  display: inline-block;
+  opacity: 0;
+  animation:
+    tm-letter-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+    tm-org-wave 6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 45ms), calc(1.4s + var(--i) * 110ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-org-letter { animation: none; opacity: 1; }
+}

@@ -3,6 +3,7 @@ import { getCurrentAppUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/sidebar";
 import { MobileNav } from "@/components/mobile-nav";
+import { OrgBrandBar } from "@/components/org-brand-bar";
 import { ProfileMenu } from "@/components/profile-menu";
 import { IdleLogout } from "@/components/idle-logout";
 import { ChatDock } from "@/components/chat/chat-dock";
@@ -46,8 +47,9 @@ export default async function AppLayout({
     <div className="flex flex-1 min-h-0 bg-body-bg">
       <Sidebar appUser={appUser} org={org} />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 pb-15">
-        <div className="flex items-center justify-between md:justify-end gap-3 mb-4.5">
+        <div className="flex items-center gap-3 mb-4.5">
           <MobileNav role={appUser.system_role} org={org} />
+          <OrgBrandBar name={org.name} logoUrl={org.logoUrl} />
           <ProfileMenu
             name={appUser.full_name}
             email={appUser.email}

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentAppUser, roleHome } from "@/lib/auth";
-import { getDigiPresenceLogoUrl } from "@/lib/brand";
 import { LoginForm } from "./login-form";
 import { LoginShowcase } from "./login-showcase";
 
@@ -13,7 +12,6 @@ export default async function LoginPage({
   if (appUser) redirect(roleHome(appUser.system_role));
 
   const sp = await searchParams;
-  const logoUrl = await getDigiPresenceLogoUrl();
 
   return (
     // The sign-in page carries the Digi Presence look (ink, gold, blue), not any tenant's.
@@ -27,7 +25,7 @@ export default async function LoginPage({
             You were signed out after 60 minutes of inactivity. Please sign in again.
           </div>
         ) : null}
-        <LoginForm logoUrl={logoUrl} />
+        <LoginForm />
       </div>
       <LoginShowcase />
     </div>

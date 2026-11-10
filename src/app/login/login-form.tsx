@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "./actions";
 import type { LoginState } from "./types";
-import { DigiPresenceLogo } from "@/components/brand/digipresence-logo";
+import Image from "next/image";
 import { AnimatedTitle } from "./animated-title";
 
 const initialState: LoginState = { error: null };
 
-export function LoginForm({ logoUrl }: { logoUrl: string | null }) {
+export function LoginForm() {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
@@ -18,7 +18,14 @@ export function LoginForm({ logoUrl }: { logoUrl: string | null }) {
       className="w-full max-w-[400px]"
     >
       <div className="flex flex-col items-start gap-6 mb-9">
-        <DigiPresenceLogo remoteLogoUrl={logoUrl} />
+        <Image
+          src="/DigiPresence%20Logo.png"
+          alt="Digi Presence Solutions"
+          width={150}
+          height={150}
+          priority
+          className="rounded-2xl shadow-lg"
+        />
         <AnimatedTitle text="Task Manager" />
       </div>
 
