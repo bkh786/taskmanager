@@ -146,7 +146,7 @@ export function ReportView({
   const activeFilters = Object.entries(colFilters).filter(([, v]) => v.length > 0);
 
   return (
-    <div className="flex flex-col lg:h-[calc(100vh-160px)] lg:min-h-[420px]">
+    <div className="flex flex-col lg:h-[calc(100dvh-200px)] lg:min-h-[420px]">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3 shrink-0">
         {heading}
         <ExportButton rows={filtered} appUrl={appUrl} showOrganization={showOrganization} />

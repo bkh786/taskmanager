@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { signIn } from "./actions";
 import type { LoginState } from "./types";
-import type { OrgBranding } from "./page";
+import { DigiPresenceLogo } from "@/components/brand/digipresence-logo";
+import { AnimatedTitle } from "./animated-title";
 
 const initialState: LoginState = { error: null };
 
-export function LoginForm({ branding }: { branding: OrgBranding | null }) {
+export function LoginForm({ logoUrl }: { logoUrl: string | null }) {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
@@ -16,30 +17,9 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
       action={formAction}
       className="w-full max-w-[400px]"
     >
-      <div className="flex flex-col items-start gap-4 mb-8">
-        {branding?.logoUrl ? (
-          // Natural aspect ratio, bounded by max-height/max-width -- logos
-          // vary per org (square, circular, wide rectangular banners) and
-          // shouldn't be cropped or squeezed into a fixed square tile.
-          // eslint-disable-next-line @next/next/no-img-element -- per-tenant Storage URL, not a static/optimizable asset
-          <img
-            src={branding.logoUrl}
-            alt={branding.name}
-            className="max-h-16 max-w-[220px] w-auto h-auto object-contain"
-          />
-        ) : (
-          <div className="w-12 h-12 rounded-[10px] bg-accent text-white flex items-center justify-center font-bold text-[17px]">
-            {branding ? branding.name.slice(0, 2).toUpperCase() : "TM"}
-          </div>
-        )}
-        <div>
-          <div className="text-[26px] font-extrabold text-text-main leading-tight">
-            {branding?.name ?? "Task Manager"}
-          </div>
-          <div className="text-[14px] text-text-sub mt-1">
-            Welcome back. Sign in to your workspace
-          </div>
-        </div>
+      <div className="flex flex-col items-start gap-6 mb-9">
+        <DigiPresenceLogo remoteLogoUrl={logoUrl} />
+        <AnimatedTitle text="Task Manager" />
       </div>
 
       <div className="flex flex-col gap-3.5">
@@ -80,15 +60,12 @@ export function LoginForm({ branding }: { branding: OrgBranding | null }) {
         <button
           type="submit"
           disabled={pending}
-          className="mt-1.5 w-full py-3 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-60"
+          className="mt-1.5 w-full py-3 text-white tm-signin rounded-lg text-sm font-semibold cursor-pointer disabled:opacity-60"
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>
       </div>
 
-      <div className="text-xs text-text-faint mt-6">
-        Multi-tenant workspace · role is determined by your account
-      </div>
     </form>
   );
 }

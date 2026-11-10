@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Public_Sans } from "next/font/google";
 import "./globals.css";
+import { BrandFooter } from "@/components/brand/brand-footer";
 
 const publicSans = Public_Sans({
   variable: "--font-public-sans",
@@ -38,7 +39,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="h-dvh flex flex-col">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">{children}</div>
+        <BrandFooter />
+      </body>
     </html>
   );
 }

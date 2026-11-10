@@ -38,12 +38,12 @@ export function LoginShowcase() {
       className="hidden lg:flex relative overflow-hidden flex-col justify-center px-14 xl:px-20 py-12 text-white"
       style={{
         background:
-          "radial-gradient(900px 500px at 85% -10%, color-mix(in oklab, var(--accent) 60%, #fff) 0%, transparent 60%), linear-gradient(135deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 45%, #000) 100%)",
+          "radial-gradient(800px 500px at 90% -10%, rgba(10,132,255,0.38) 0%, transparent 62%), radial-gradient(600px 420px at 0% 110%, rgba(212,175,55,0.22) 0%, transparent 60%), linear-gradient(135deg, #0b0b0e 0%, #050505 100%)",
       }}
     >
       {/* soft shapes */}
-      <div aria-hidden="true" className="absolute -left-24 -bottom-24 w-[380px] h-[380px] rounded-full bg-white/10" />
-      <div aria-hidden="true" className="absolute right-10 bottom-10 w-[180px] h-[180px] rounded-full bg-black/10" />
+      <div aria-hidden="true" className="absolute -left-24 -bottom-24 w-[380px] h-[380px] rounded-full" style={{ background: "rgba(212,175,55,0.10)" }} />
+      <div aria-hidden="true" className="absolute right-10 bottom-10 w-[180px] h-[180px] rounded-full" style={{ background: "rgba(10,132,255,0.12)" }} />
       <div
         aria-hidden="true"
         className="absolute inset-0 opacity-[0.18]"
@@ -54,13 +54,13 @@ export function LoginShowcase() {
       />
 
       <div className="relative max-w-[760px]">
-        <div className="text-[12px] font-semibold tracking-[0.18em] uppercase opacity-80">
+        <div className="text-[12px] font-semibold tracking-[0.18em] uppercase" style={{ color: "#D4AF37" }}>
           Task Manager
         </div>
         <h1 className="text-[40px] xl:text-[46px] leading-[1.08] font-extrabold mt-3">
           Get work done.
           <br />
-          <span className="opacity-80 font-light">And know it got done.</span>
+          <span className="font-light" style={{ color: "#D4AF37" }}>And know it got done.</span>
         </h1>
         <p className="text-[15.5px] mt-4 max-w-[560px] opacity-90">
           One place for assigning, tracking and proving every task across your teams, with the
@@ -71,9 +71,9 @@ export function LoginShowcase() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="rounded-xl p-4 border border-white/20 bg-white/10 backdrop-blur-[2px]"
+              className="rounded-xl p-4 border bg-white/[0.06]" style={{ borderColor: "rgba(255,255,255,0.14)" }}
             >
-              <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center mb-2.5">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-2.5" style={{ background: "rgba(212,175,55,0.16)", color: "#D4AF37" }}>
                 <svg
                   width="19"
                   height="19"

@@ -114,3 +114,28 @@ button {
   50% { filter: brightness(1.45) saturate(1.2); }
 }
 .tm-flash { animation: tm-flash 0.8s ease-in-out 8; }
+
+/* Sign-in title: letters rise in one by one, then a gold wave runs through the name. */
+@keyframes tm-letter-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.94); filter: blur(5px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes tm-letter-wave {
+  0%, 100% { color: #0b0b0c; }
+  45% { color: #D4AF37; }
+}
+.tm-letter {
+  display: inline-block;
+  opacity: 0;
+  color: #0b0b0c;
+  animation:
+    tm-letter-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+    tm-letter-wave 3.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 70ms), calc(1.2s + var(--i) * 140ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-letter { animation: none; opacity: 1; }
+}
+
+.tm-signin { background: #0b0b0c; transition: box-shadow 0.15s, background 0.15s; }
+.tm-signin:hover { background: #17171a; box-shadow: inset 0 0 0 2px #D4AF37; }

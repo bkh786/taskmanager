@@ -34,7 +34,7 @@ export function ChatDock() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed bottom-4 right-4 z-40 flex items-center gap-2.5 pl-4 pr-3.5 py-2.5 rounded-full bg-accent text-white shadow-lg border-none cursor-pointer text-[13.5px] font-semibold ${totalUnread > 0 ? "tm-blink" : ""}`}
+        className={`fixed bottom-14 right-4 z-40 flex items-center gap-2.5 pl-4 pr-3.5 py-2.5 rounded-full bg-accent text-white shadow-lg border-none cursor-pointer text-[13.5px] font-semibold ${totalUnread > 0 ? "tm-blink" : ""}`}
         aria-label="Open chat"
       >
         <span aria-hidden="true">💬</span>
@@ -55,10 +55,10 @@ export function ChatDock() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-40 flex flex-col bg-panel-bg border border-panel-border rounded-xl shadow-2xl overflow-hidden"
+      className="fixed bottom-14 right-4 z-40 flex flex-col bg-panel-bg border border-panel-border rounded-xl shadow-2xl overflow-hidden"
       style={{
         width: large ? "min(780px, calc(100vw - 32px))" : "min(350px, calc(100vw - 32px))",
-        height: large ? "min(600px, calc(100dvh - 32px))" : "min(480px, calc(100dvh - 32px))",
+        height: large ? "min(600px, calc(100dvh - 96px))" : "min(480px, calc(100dvh - 96px))",
       }}
     >
       <div className={`flex items-center justify-between px-3.5 py-2.5 bg-accent text-white ${flash ? "tm-flash" : ""}`}>

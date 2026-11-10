@@ -29,7 +29,7 @@ export function TeamChatView() {
   const onlineCount = people.filter((p) => statusOf(p.id) !== "offline").length;
 
   return (
-    <div className="flex h-[calc(100dvh-130px)] min-h-[460px] bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+    <div className="flex h-[calc(100dvh-170px)] min-h-[460px] bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
       <div className={`${peerId ? "hidden md:flex" : "flex"} flex-col w-full md:w-[340px] md:shrink-0 border-r border-panel-border min-h-0`}>
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="text-[18px] font-bold text-text-main">Team Chat</div>

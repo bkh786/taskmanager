@@ -59,7 +59,7 @@ function ConfirmInner() {
 
 export default function ConfirmPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-sidebar-bg">
+    <div className="flex-1 min-h-full flex items-center justify-center bg-sidebar-bg">
       <Suspense fallback={null}>
         <ConfirmInner />
       </Suspense>
