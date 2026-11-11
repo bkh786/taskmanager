@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { bulkRemoveInstances, REMOVAL_REASONS, type BulkRemoveState } from "@/app/(app)/task-management/actions";
+import { bulkRemoveInstances, type BulkRemoveState } from "@/app/(app)/task-management/actions";
+import { REMOVAL_REASONS } from "@/lib/removal-reasons";
 import { useColumnFilters, type FilterCol } from "@/components/table-filters";
 import { fmtDate } from "@/lib/task-status";
 

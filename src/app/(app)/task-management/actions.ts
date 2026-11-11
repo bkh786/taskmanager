@@ -4,16 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAssignableEmployees } from "@/lib/org-data";
-
-export const REMOVAL_REASONS = [
-  "Duplicate task",
-  "Created by mistake",
-  "No longer required",
-  "Employee on leave",
-  "Employee left (attrition)",
-  "Reassigned to someone else",
-  "Other",
-] as const;
+import { REMOVAL_REASONS } from "@/lib/removal-reasons";
 
 export type BulkRemoveState = { error: string | null; removed: number; skipped: number };
 
