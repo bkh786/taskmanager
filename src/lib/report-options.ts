@@ -2,13 +2,14 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AppUser } from "@/lib/auth";
+import { loadUserProjects } from "@/lib/user-projects";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
 
 export type ReportPerson = {
   id: string;
   name: string;
-  projectId: string | null;
+  projectIds: string[];
   designationId: string | null;
   role: AppUser["system_role"];
 };
@@ -86,14 +87,21 @@ async function build(client: Client, scopeUsers: UserRow[]): Promise<ReportOptio
     for (const u of data ?? []) nameById.set(u.id, u.full_name);
   }
 
-  const usedProjects = new Set(scopeUsers.map((u) => u.project_id).filter(Boolean));
+  const memberships = await loadUserProjects(client, scopeUsers.map((u) => u.id));
+  const projectsOf = (u: UserRow): string[] => {
+    const set = new Set<string>();
+    if (u.project_id) set.add(u.project_id);
+    for (const id of memberships.get(u.id) ?? []) set.add(id);
+    return [...set];
+  };
+  const usedProjects = new Set(scopeUsers.flatMap(projectsOf));
   const usedDesignations = new Set(scopeUsers.map((u) => u.designation_id).filter(Boolean));
 
   return {
     people: scopeUsers.map((u) => ({
       id: u.id,
       name: u.full_name,
-      projectId: u.project_id,
+      projectIds: projectsOf(u),
       designationId: u.designation_id,
       role: u.system_role,
     })),

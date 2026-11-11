@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getAssignableEmployees, getUserActiveTasks, getOrgProjects } from "@/lib/org-data";
+import { getUserProjectIds } from "@/lib/user-projects";
 import { todayIso } from "@/lib/task-status";
 import { CreateTaskModal } from "@/components/dashboard/create-task-modal";
 import { SourceSelect } from "@/components/bulk-copy/source-select";
@@ -91,17 +92,28 @@ async function CopyTab({ source }: { source: string }) {
   );
 }
 
-async function RemoveTab({ emp, proj }: { emp: string; proj: string }) {
+async function RemoveTab({ emp, proj: projParam }: { emp: string; proj: string }) {
   const appUser = await requireRole(["master_admin", "reporting_manager"]);
   const supabase = await createClient();
   const employees = await getAssignableEmployees(appUser, { includeInactive: true });
-  const projects = appUser.org_id ? await getOrgProjects(appUser.org_id) : [];
+  let proj = projParam;
+  const allProjects = appUser.org_id ? await getOrgProjects(appUser.org_id) : [];
+  // Org admins choose from every project. A reporting manager only works within
+  // their own project(s): one project is applied automatically, several are listed.
+  let projects = allProjects;
+  let lockedProject: { id: string; name: string } | null = null;
+  if (appUser.system_role === "reporting_manager") {
+    const mine = new Set(await getUserProjectIds(appUser.id, appUser.project_id));
+    projects = allProjects.filter((p) => mine.has(p.id));
+    if (projects.length === 1) lockedProject = projects[0];
+  }
+  if (!projects.some((p) => p.id === proj)) proj = lockedProject?.id ?? "";
   const byId = new Map(employees.map((e) => [e.id, e]));
 
   // Only people this person may manage; ids arrive via the URL.
   let ids: string[] = [];
   if (emp && byId.has(emp)) ids = [emp];
-  else if (proj) ids = employees.filter((e) => e.project_id === proj).map((e) => e.id);
+  else if (proj) ids = employees.filter((e) => e.project_ids.includes(proj)).map((e) => e.id);
 
   const today = todayIso();
   const rows: RemovalRow[] = [];
@@ -140,6 +152,7 @@ async function RemoveTab({ emp, proj }: { emp: string; proj: string }) {
       rows={rows.slice(0, REMOVAL_CAP)}
       employees={employees.map((e) => ({ id: e.id, full_name: e.full_name, is_active: e.is_active }))}
       projects={projects}
+      lockedProject={lockedProject}
       emp={emp}
       proj={proj}
       truncated={truncated}

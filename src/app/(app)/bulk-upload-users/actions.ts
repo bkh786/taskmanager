@@ -1,5 +1,6 @@
 "use server";
 
+import { setUserProjects } from "@/lib/user-projects";
 import * as XLSX from "xlsx";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
@@ -117,15 +118,26 @@ export async function bulkCreateUsers(
       continue;
     }
 
-    const projectRaw = String(row.project ?? "").trim();
-    const projectId = projectRaw ? projectByName.get(projectRaw.toLowerCase()) : undefined;
-    if (projectRaw && !projectId) {
+    // One project, or several separated by ";" (the first becomes the primary one).
+    const projectNames = String(row.project ?? "").split(";").map((x) => x.trim()).filter(Boolean);
+    const projectIdList: string[] = [];
+    let unknownProject = "";
+    for (const name of projectNames) {
+      const id = projectByName.get(name.toLowerCase());
+      if (!id) {
+        unknownProject = name;
+        break;
+      }
+      if (!projectIdList.includes(id)) projectIdList.push(id);
+    }
+    if (unknownProject) {
       skipped.push({
         row: rowNum,
-        reason: `Unknown project "${projectRaw}" — create it in User Management first.`,
+        reason: `Unknown project "${unknownProject}" — create it in User Management first.`,
       });
       continue;
     }
+    const projectId = projectIdList[0];
 
     const designationRaw = String(row.designation ?? "").trim();
     const designationId = designationRaw
@@ -180,6 +192,7 @@ export async function bulkCreateUsers(
       continue;
     }
 
+    if (projectIdList.length > 0) await setUserProjects(createdAuthUser.user.id, projectIdList);
     emailToId.set(email, createdAuthUser.user.id);
     welcomeQueue.push({ email, fullName, employeeCode, role: roleRaw, password });
     created++;

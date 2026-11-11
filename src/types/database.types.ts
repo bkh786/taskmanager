@@ -838,6 +838,39 @@ export type Database = {
           },
         ]
       }
+      user_projects: {
+        Row: {
+          user_id: string
+          project_id: string
+          created_at: string
+        }
+        Insert: {
+          user_id: string
+          project_id: string
+          created_at?: string
+        }
+        Update: {
+          user_id?: string
+          project_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_replacement_log: {
         Row: {
           id: string

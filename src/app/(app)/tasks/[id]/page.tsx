@@ -32,7 +32,7 @@ export default async function TaskDetailPage({
          excluded_weekdays, start_date, end_date, reminder_enabled,
          notify_on_complete, notification_cc
        ),
-       assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, reports_to, project:projects(name) )`
+       assignee:app_users!task_instances_assignee_id_fkey ( full_name, system_role, reports_to, project:projects!app_users_project_id_fkey(name) )`
     )
     .eq("id", id)
     .single();

@@ -122,26 +122,27 @@ function computeOptions(options: ReportOptions, f: Sel) {
     linksByAssignee.get(assignee)!.add(assigner);
   }
   const inSet = (sel: string[], v: string | null) => sel.length === 0 || (!!v && sel.includes(v));
+  const inAny = (sel: string[], vs: string[]) => sel.length === 0 || vs.some((v) => sel.includes(v));
   const byAssigner = (id: string) =>
     f.assignedBy.length === 0 ||
     [...(linksByAssignee.get(id) ?? [])].some((a) => f.assignedBy.includes(a));
   const match = (skip: "p" | "d" | "r") =>
     options.people.filter(
       (p) =>
-        (skip === "p" || inSet(f.projects, p.projectId)) &&
+        (skip === "p" || inAny(f.projects, p.projectIds)) &&
         (skip === "d" || inSet(f.designations, p.designationId)) &&
         (skip === "r" || inSet(f.roles, p.role)) &&
         byAssigner(p.id)
     );
 
-  const projIds = new Set(match("p").map((p) => p.projectId));
+  const projIds = new Set(match("p").flatMap((p) => p.projectIds));
   const desIds = new Set(match("d").map((p) => p.designationId));
   const roleIds = new Set(match("r").map((p) => p.role));
   const assigneeIds = new Set(
     options.people
       .filter(
         (p) =>
-          inSet(f.projects, p.projectId) &&
+          inAny(f.projects, p.projectIds) &&
           inSet(f.designations, p.designationId) &&
           inSet(f.roles, p.role)
       )

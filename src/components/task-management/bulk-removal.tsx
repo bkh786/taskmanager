@@ -39,6 +39,7 @@ export function BulkRemoval({
   rows,
   employees,
   projects,
+  lockedProject,
   emp,
   proj,
   truncated,
@@ -46,6 +47,8 @@ export function BulkRemoval({
   rows: RemovalRow[];
   employees: { id: string; full_name: string; is_active: boolean }[];
   projects: { id: string; name: string }[];
+  /** Set when the signed-in manager belongs to exactly one project: it is applied for them. */
+  lockedProject: { id: string; name: string } | null;
   emp: string;
   proj: string;
   truncated: boolean;
@@ -202,18 +205,26 @@ export function BulkRemoval({
             ))}
           </select>
         </label>
-        <span className="text-[12px] text-text-faint">or</span>
-        <label className="flex items-center gap-1.5 text-[12px] font-semibold text-text-sub">
-          Project
-          <select value={proj} onChange={(e) => setParam("proj", e.target.value)} className={select}>
-            <option value="">Choose…</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {lockedProject ? (
+          <span className="text-[12px] font-semibold text-text-sub">
+            Project: <span className="text-text-main">{lockedProject.name}</span>
+          </span>
+        ) : projects.length > 0 ? (
+          <>
+            <span className="text-[12px] text-text-faint">or</span>
+            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-text-sub">
+              Project
+              <select value={proj} onChange={(e) => setParam("proj", e.target.value)} className={select}>
+                <option value="">Choose…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        ) : null}
       </div>
 
       {!emp && !proj ? (

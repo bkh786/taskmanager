@@ -8,6 +8,7 @@ import { ROLE_LABEL } from "@/lib/email-events";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveOrgContext } from "@/lib/org-context";
+import { setUserProjects } from "@/lib/user-projects";
 
 export type UserFormState = { error: string | null };
 
@@ -35,7 +36,8 @@ export async function createOrReplaceUser(
   const mode = String(formData.get("mode") ?? "new_hire"); // "new_hire" | "replacing"
   const replacingUserId = String(formData.get("replacingUserId") ?? "");
   const reportsTo = String(formData.get("reportsTo") ?? "") || null;
-  const projectId = String(formData.get("projectId") ?? "") || null;
+  const projectIds = [...new Set(formData.getAll("projectIds").map(String).filter(Boolean))];
+  const projectId = projectIds[0] ?? null; // primary project
   const designationId = String(formData.get("designationId") ?? "") || null;
 
   if (!fullName || !email || !password || !employeeCode) {
@@ -55,9 +57,11 @@ export async function createOrReplaceUser(
   const supabase = ctx.client ?? (await createClient());
 
   // The chosen project and designation must belong to this organization.
-  if (projectId) {
-    const { data } = await admin.from("projects").select("id").eq("id", projectId).eq("org_id", orgId).maybeSingle();
-    if (!data) return { error: "That project doesn't belong to this organization." };
+  if (projectIds.length > 0) {
+    const { data } = await admin.from("projects").select("id").in("id", projectIds).eq("org_id", orgId);
+    if ((data?.length ?? 0) !== projectIds.length) {
+      return { error: "A selected project doesn't belong to this organization." };
+    }
   }
   if (designationId) {
     const { data } = await admin.from("designations").select("id").eq("id", designationId).eq("org_id", orgId).maybeSingle();
@@ -92,6 +96,8 @@ export async function createOrReplaceUser(
     await admin.auth.admin.deleteUser(created.user.id);
     return { error: insertError.message };
   }
+  const projectError = await setUserProjects(created.user.id, projectIds);
+  if (projectError) return { error: `User created, but projects could not be saved: ${projectError}` };
 
   // Welcome email (respects the org's on/off switch and template) -- sent in
   // the background so the form returns immediately.
@@ -227,7 +233,8 @@ export async function updateUser(
   const targetId = String(formData.get("userId") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
   const employeeCode = String(formData.get("employeeCode") ?? "").trim();
-  const projectId = String(formData.get("projectId") ?? "") || null;
+  const projectsSubmitted = formData.get("projectsSubmitted") !== null;
+  const projectIds = [...new Set(formData.getAll("projectIds").map(String).filter(Boolean))];
   const designationId = String(formData.get("designationId") ?? "") || null;
   const isActive = formData.get("isActive") === "on";
   const roleInput = formData.get("role");
@@ -256,7 +263,7 @@ export async function updateUser(
   const update: {
     full_name: string;
     employee_code: string;
-    project_id: string | null;
+    project_id?: string | null;
     designation_id: string | null;
     is_active: boolean;
     system_role?: AppUser["system_role"];
@@ -266,10 +273,30 @@ export async function updateUser(
   } = {
     full_name: fullName,
     employee_code: employeeCode,
-    project_id: projectId,
     designation_id: designationId,
     is_active: isActive,
   };
+
+  // Projects: the first ticked one is the primary project; the full set is kept
+  // in user_projects. They must all belong to the person's organization.
+  if (projectsSubmitted) {
+    if (projectIds.length > 0) {
+      const { data: owner } = await createAdminClient().from("app_users").select("org_id").eq("id", targetId).maybeSingle();
+      if (!owner?.org_id) return { error: "User not found." };
+      if (appUser.system_role !== "platform_owner" && owner.org_id !== appUser.org_id) {
+        return { error: "That user is not in your organization." };
+      }
+      const { data: valid } = await createAdminClient()
+        .from("projects")
+        .select("id")
+        .in("id", projectIds)
+        .eq("org_id", owner.org_id);
+      if ((valid?.length ?? 0) !== projectIds.length) {
+        return { error: "A selected project doesn't belong to this organization." };
+      }
+    }
+    update.project_id = projectIds[0] ?? null;
+  }
 
   // Role and reporting-line changes are master_admin/platform_owner-only --
   // a reporting manager can update their reportees' basic fields but not
@@ -325,6 +352,10 @@ export async function updateUser(
 
   const { error } = await supabase.from("app_users").update(update).eq("id", targetId);
   if (error) return { error: error.message };
+  if (projectsSubmitted) {
+    const projectError = await setUserProjects(targetId, projectIds);
+    if (projectError) return { error: projectError };
+  }
 
   const orgId = String(formData.get("orgId") ?? "");
   revalidatePath("/users");

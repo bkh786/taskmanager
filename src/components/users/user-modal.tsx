@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { createOrReplaceUser } from "@/app/(app)/users/actions";
 import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
+import { ProjectChecklist } from "./project-checklist";
 
 const initialState = { error: null };
 
@@ -39,7 +40,7 @@ export function UserModal({
     presetTarget ? "replacing" : "new_hire"
   );
   const [replacingId, setReplacingId] = useState(presetTarget?.id ?? "");
-  const [projectId, setProjectId] = useState(presetTarget?.project_id ?? "");
+  const [projectIds, setProjectIds] = useState<string[]>(presetTarget?.project_ids ?? []);
   const [designationId, setDesignationId] = useState(presetTarget?.designation_id ?? "");
 
   // Candidate managers follow the designation hierarchy (a designation can
@@ -131,7 +132,7 @@ export function UserModal({
                   setReplacingId(e.target.value);
                   const who = employees.find((x) => x.id === e.target.value);
                   if (who) {
-                    setProjectId(who.project_id ?? "");
+                    setProjectIds(who.project_ids ?? []);
                     setDesignationId(who.designation_id ?? "");
                   }
                 }}
@@ -202,21 +203,9 @@ export function UserModal({
           </div>
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">
-              Project / Department
+              Projects / Departments
             </label>
-            <select
-              name="projectId"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
-            >
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <ProjectChecklist projects={projects} selectedIds={projectIds} onChange={setProjectIds} />
           </div>
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">

@@ -1,3 +1,4 @@
+import { loadUserProjects } from "@/lib/user-projects";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,6 +24,8 @@ export type ReportRow = {
   organization: string;
   dateOfJoining: string;
   projectId: string;
+  /** Every project the assignee belongs to (projectId is the primary one). */
+  projectIds: string[];
   designationId: string;
   role: string;
   assignedById: string;
@@ -84,7 +87,7 @@ const SELECT = `id, created_at, due_date, completed_at, status, attachment_url, 
      assignee:app_users!task_instances_assignee_id_fkey (
        id, employee_code, reports_to, full_name, date_of_joining, project_id, designation_id, system_role,
        designation:designations(name),
-       project:projects(name)
+       project:projects!app_users_project_id_fkey(name)
      )`;
 
 function mapRow(r: RawRow, orgName: string, managers: Map<string, string>): ReportRow {
@@ -105,6 +108,7 @@ function mapRow(r: RawRow, orgName: string, managers: Map<string, string>): Repo
     organization: orgName,
     dateOfJoining: r.assignee!.date_of_joining ?? "",
     projectId: r.assignee!.project_id ?? "",
+    projectIds: r.assignee!.project_id ? [r.assignee!.project_id] : [],
     designationId: r.assignee!.designation_id ?? "",
     role: r.assignee!.system_role,
     assignedById: r.task!.created_by ?? "",
@@ -152,6 +156,29 @@ function resolveRange(filters: ReportFilters): { from: string; to: string } {
   return { from, to };
 }
 
+/** Adds each assignee's full set of projects (a person can be in several). */
+async function withProjects(
+  client: SupabaseClient<Database>,
+  rows: ReportRow[]
+): Promise<ReportRow[]> {
+  const ids = [...new Set(rows.map((r) => r.assigneeId))];
+  const memberships = await loadUserProjects(client, ids);
+  const extra = [...memberships.values()].some((l) => l.length > 0);
+  if (!extra) return rows;
+  const { data: names } = await client.from("projects").select("id, name");
+  const nameOf = new Map((names ?? []).map((p) => [p.id, p.name]));
+  return rows.map((r) => {
+    const set = new Set<string>(r.projectId ? [r.projectId] : []);
+    for (const id of memberships.get(r.assigneeId) ?? []) set.add(id);
+    const list = [...set];
+    return {
+      ...r,
+      projectIds: list,
+      project: list.map((id) => nameOf.get(id)).filter(Boolean).join(", ") || r.project,
+    };
+  });
+}
+
 /** Filters that aren't expressed in the query: months, and the people/status filters. */
 function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
   const set = (a?: string[]) => (a && a.length > 0 ? new Set(a) : null);
@@ -164,7 +191,7 @@ function applyFilters(rows: ReportRow[], filters: ReportFilters): ReportRow[] {
   const today = todayIso();
   return rows.filter((r) => {
     if (months && !months.has(r.dueDate.slice(0, 7))) return false;
-    if (projects && !projects.has(r.projectId)) return false;
+    if (projects && !r.projectIds.some((p) => projects.has(p))) return false;
     if (designations && !designations.has(r.designationId)) return false;
     if (roles && !roles.has(r.role)) return false;
     if (assigners && !assigners.has(r.assignedById)) return false;
@@ -233,7 +260,7 @@ export async function getReportRows(
   const managers = await loadManagerNames(supabase, raw);
   const rows = raw.filter((r) => r.task && r.assignee).map((r) => mapRow(r, "", managers));
 
-  return applyFilters(rows, filters);
+  return applyFilters(await withProjects(supabase, rows), filters);
 }
 
 /**
@@ -271,5 +298,5 @@ export async function getPlatformReportRows(filters: ReportFilters = {}): Promis
     .filter((r) => r.task && r.assignee)
     .map((r) => mapRow(r, orgNames.get(r.task!.org_id ?? "") ?? "—", managers));
 
-  return applyFilters(rows, filters);
+  return applyFilters(await withProjects(admin, rows), filters);
 }

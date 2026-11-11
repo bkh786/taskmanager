@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { updateUser, adminSetPassword, adminGenerateResetLink } from "@/app/(app)/users/actions";
 import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
+import { ProjectChecklist } from "./project-checklist";
 
 const initialState = { error: null };
 
@@ -136,20 +137,9 @@ export function EditUserModal({
 
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">
-              Project
+              Projects / Departments
             </label>
-            <select
-              name="projectId"
-              defaultValue={target.project_id ?? ""}
-              className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
-            >
-              <option value="">No project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <ProjectChecklist projects={projects} defaultIds={target.project_ids} />
           </div>
 
           <div>

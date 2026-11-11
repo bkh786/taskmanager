@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { AppUser } from "@/lib/auth";
+import { attachProjects } from "@/lib/user-projects";
 
 export type Employee = {
   id: string;
@@ -8,8 +9,12 @@ export type Employee = {
   email: string;
   employee_code: string;
   system_role: AppUser["system_role"];
+  /** Primary project (the first one chosen). */
   project_id: string | null;
+  /** Every project, comma-separated, primary first. */
   project_name: string | null;
+  /** Every project the person belongs to, primary first. */
+  project_ids: string[];
   designation_id: string | null;
   is_active: boolean;
   reports_to: string | null;
@@ -42,7 +47,7 @@ export async function getAssignableEmployees(
     const projectIds = [...new Set(rows.map((r) => r.project_id).filter(Boolean))] as string[];
     const projectNames = await getProjectNameMap(projectIds);
 
-    return rows
+    const listed = rows
       .filter((r) => opts.includeInactive || r.is_active)
       .map((r) => ({
         id: r.id,
@@ -53,9 +58,11 @@ export async function getAssignableEmployees(
         project_id: r.project_id,
         project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
         designation_id: r.designation_id,
+        project_ids: [] as string[],
         is_active: r.is_active,
         reports_to: null,
       }));
+    return attachProjects(supabase, listed, await getAllProjectNames());
   }
 
   // master_admin / platform_owner (platform_owner has no org_id, but this
@@ -63,7 +70,7 @@ export async function getAssignableEmployees(
   let query = supabase
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects!app_users_project_id_fkey(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .neq("system_role", "master_admin")
@@ -72,7 +79,7 @@ export async function getAssignableEmployees(
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map((r) => ({
+  const listed = (data ?? []).map((r) => ({
     id: r.id,
     full_name: r.full_name,
     email: r.email,
@@ -80,10 +87,19 @@ export async function getAssignableEmployees(
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
+    project_ids: [] as string[],
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
   }));
+  return attachProjects(supabase, listed, await getAllProjectNames());
+}
+
+/** Every project the caller can see (RLS scopes this to their organization). */
+async function getAllProjectNames(): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("projects").select("id, name");
+  return new Map((data ?? []).map((p) => [p.id, p.name]));
 }
 
 async function getProjectNameMap(ids: string[]): Promise<Map<string, string>> {
@@ -128,7 +144,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
       : { data: [] };
     const managerNames = new Map((managers ?? []).map((m) => [m.id, m.full_name]));
 
-    return rows.map((r) => {
+    const listed = rows.map((r) => {
       const e = extraById.get(r.id);
       return {
         id: r.id,
@@ -138,6 +154,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
         system_role: r.system_role,
         project_id: r.project_id,
         project_name: r.project_id ? (projectNames.get(r.project_id) ?? null) : null,
+        project_ids: [] as string[],
         designation_id: r.designation_id,
         is_active: r.is_active,
         reports_to: e?.reports_to ?? null,
@@ -145,12 +162,13 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
         manager_name: e?.reports_to ? (managerNames.get(e.reports_to) ?? null) : null,
       };
     });
+    return attachProjects(supabase, listed, await getAllProjectNames());
   }
 
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects(name), designation:designations(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects!app_users_project_id_fkey(name), designation:designations(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .order("full_name");
@@ -160,7 +178,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
   // Self-referencing joins aren't supported by the API, but this list already
   // holds everyone in the org, so manager names come from it.
   const nameById = new Map(rows.map((r) => [r.id, r.full_name]));
-  return rows.map((r) => ({
+  const listed = rows.map((r) => ({
     id: r.id,
     full_name: r.full_name,
     email: r.email,
@@ -168,6 +186,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
+    project_ids: [] as string[],
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
@@ -175,6 +194,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     designation_name: (r.designation as { name: string } | null)?.name ?? null,
     manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));
+  return attachProjects(supabase, listed, await getAllProjectNames());
 }
 
 export async function getOrgManagers(orgId: string): Promise<Employee[]> {
@@ -189,7 +209,12 @@ export async function getOrgManagers(orgId: string): Promise<Employee[]> {
     .eq("is_active", true)
     .order("full_name");
   if (error) throw error;
-  return (data ?? []).map((r) => ({ ...r, is_active: r.is_active ?? true, project_name: null }));
+  return (data ?? []).map((r) => ({
+    ...r,
+    is_active: r.is_active ?? true,
+    project_name: null,
+    project_ids: r.project_id ? [r.project_id] : [],
+  }));
 }
 
 export async function getOrgProjects(orgId: string) {

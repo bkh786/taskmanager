@@ -1,3 +1,4 @@
+import { attachProjects } from "@/lib/user-projects";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -119,14 +120,14 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
   const { data, error } = await admin
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects(name), designation:designations(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects!app_users_project_id_fkey(name), designation:designations(name)"
     )
     .eq("org_id", orgId)
     .order("full_name");
   if (error) throw error;
   const rows = data ?? [];
   const nameById = new Map(rows.map((r) => [r.id, r.full_name]));
-  return rows.map((r) => ({
+  const listed = rows.map((r) => ({
     id: r.id,
     full_name: r.full_name,
     email: r.email,
@@ -134,6 +135,7 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
     system_role: r.system_role,
     project_id: r.project_id,
     project_name: (r.project as { name: string } | null)?.name ?? null,
+    project_ids: [] as string[],
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
@@ -141,6 +143,8 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
     designation_name: (r.designation as { name: string } | null)?.name ?? null,
     manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));
+  const { data: projectRows } = await admin.from("projects").select("id, name").eq("org_id", orgId);
+  return attachProjects(admin, listed, new Map((projectRows ?? []).map((p) => [p.id, p.name])));
 }
 
 export async function getTenantManagers(orgId: string): Promise<Employee[]> {
@@ -155,7 +159,12 @@ export async function getTenantManagers(orgId: string): Promise<Employee[]> {
     .eq("is_active", true)
     .order("full_name");
   if (error) throw error;
-  return (data ?? []).map((r) => ({ ...r, is_active: r.is_active ?? true, project_name: null }));
+  return (data ?? []).map((r) => ({
+    ...r,
+    is_active: r.is_active ?? true,
+    project_name: null,
+    project_ids: r.project_id ? [r.project_id] : [],
+  }));
 }
 
 export async function getTenantProjects(orgId: string) {

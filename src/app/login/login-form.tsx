@@ -17,14 +17,14 @@ export function LoginForm() {
       action={formAction}
       className="w-full max-w-[400px]"
     >
-      <div className="flex flex-col items-start gap-6 mb-9">
+      <div className="flex items-center gap-4 mb-9">
         <Image
           src="/DigiPresence%20Logo.png"
           alt="Digi Presence Solutions"
-          width={150}
-          height={150}
+          width={88}
+          height={88}
           priority
-          className="rounded-2xl shadow-lg"
+          className="rounded-xl shadow-md shrink-0"
         />
         <AnimatedTitle text="Task Manager" />
       </div>

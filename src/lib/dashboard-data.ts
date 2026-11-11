@@ -1,3 +1,4 @@
+import { loadUserProjects } from "@/lib/user-projects";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { AppUser } from "@/lib/auth";
@@ -106,7 +107,12 @@ export async function resolveAssigneeScope(
       return reportees.some((r) => r.id === filterValue) ? [filterValue] : [];
     }
     let pool = reportees;
-    if (filterMode === "project" && filterValue) pool = pool.filter((r) => r.project_id === filterValue);
+    if (filterMode === "project" && filterValue) {
+      const memberships = await loadUserProjects(supabase, pool.map((r) => r.id));
+      pool = pool.filter(
+        (r) => r.project_id === filterValue || (memberships.get(r.id) ?? []).includes(filterValue)
+      );
+    }
     if (filterMode === "designation" && filterValue) pool = pool.filter((r) => r.designation_id === filterValue);
     return pool.filter((r) => statusOk(r.is_active)).map((r) => r.id);
   }
@@ -116,15 +122,39 @@ export async function resolveAssigneeScope(
   const filtered = (filterMode === "project" || filterMode === "designation") && !!filterValue;
   if (!filtered && userStatus === "all") return null;
 
+  // A project filter matches anyone who belongs to that project (primary or not).
+  let memberIds: Set<string> | null = null;
+  if (filterMode === "project" && filterValue) {
+    memberIds = new Set();
+    for (let from = 0; ; from += ID_PAGE) {
+      const { data, error } = await supabase
+        .from("user_projects")
+        .select("user_id")
+        .eq("project_id", filterValue)
+        .order("user_id")
+        .range(from, from + ID_PAGE - 1);
+      if (error) throw error;
+      for (const r of data ?? []) memberIds.add(r.user_id);
+      if ((data?.length ?? 0) < ID_PAGE) break;
+    }
+  }
+
   const ids: string[] = [];
+  if (memberIds) {
+    const all = [...memberIds];
+    for (let i = 0; i < all.length; i += 100) {
+      let query = supabase.from("app_users").select("id").in("id", all.slice(i, i + 100));
+      if (userStatus === "active") query = query.neq("is_active", false);
+      if (userStatus === "inactive") query = query.eq("is_active", false);
+      const { data, error } = await query;
+      if (error) throw error;
+      ids.push(...(data ?? []).map((u) => u.id));
+    }
+    return ids;
+  }
   for (let from = 0; ; from += ID_PAGE) {
     let query = supabase.from("app_users").select("id").order("id");
-    if (filtered) {
-      query =
-        filterMode === "project"
-          ? query.eq("project_id", filterValue)
-          : query.eq("designation_id", filterValue);
-    }
+    if (filtered) query = query.eq("designation_id", filterValue);
     if (userStatus === "active") query = query.neq("is_active", false);
     if (userStatus === "inactive") query = query.eq("is_active", false);
     const { data, error } = await query.range(from, from + ID_PAGE - 1);
