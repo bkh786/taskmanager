@@ -33,6 +33,9 @@ export const getCurrentAppUser = cache(async (): Promise<AppUser | null> => {
     .single();
 
   if (error || !data) return null;
+  // A deactivated person is signed out of the app at once, even if their session
+  // (or a password-reset link) is still valid.
+  if (data.is_active === false) return null;
   return data;
 });
 

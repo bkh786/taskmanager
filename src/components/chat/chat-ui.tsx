@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat, type ChatMsg, type Person, type Status } from "./chat-provider";
+import { useCallOptional } from "./call-provider";
+import { alertPermission, requestAlertPermission, unlockAudio, type AlertPermission } from "@/lib/alerts";
 
 export const DOT: Record<Status, string> = {
   available: "#22a06b",
@@ -200,9 +202,36 @@ function ForwardPicker({
   );
 }
 
+/** Asks (once) to show system alerts, which is what lets the computer's own notification tone play. */
+export function AlertsPrompt() {
+  const [perm, setPerm] = useState<AlertPermission>("granted");
+  useEffect(() => {
+    // Reading the browser's permission needs the client, so it is set after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPerm(alertPermission());
+  }, []);
+  if (perm !== "default") return null;
+  return (
+    <div className="flex items-center justify-between gap-2 px-3 py-2 bg-accent-soft text-[12px] text-text-body border-b border-panel-border">
+      <span>Get an alert with your system&apos;s sound for new messages and calls.</span>
+      <button
+        type="button"
+        onClick={async () => {
+          unlockAudio();
+          setPerm(await requestAlertPermission());
+        }}
+        className="border-none bg-accent text-white px-2.5 py-1 rounded-md text-[12px] font-semibold cursor-pointer whitespace-nowrap"
+      >
+        Turn on
+      </button>
+    </div>
+  );
+}
+
 /** One open chat: header, messages (with reply / forward), and the composer. */
 export function ConversationView({ peerId, onBack }: { peerId: string; onBack?: () => void }) {
   const { me, people, statusOf, conversationWith, messages, send, retry } = useChat();
+  const calls = useCallOptional();
   const peer = people.find((p) => p.id === peerId) ?? null;
   const convo = conversationWith(peerId);
 
@@ -271,6 +300,26 @@ export function ConversationView({ peerId, onBack }: { peerId: string; onBack?: 
             {LABEL[statusOf(peer.id)]}
           </div>
         </div>
+        {calls ? (
+          <div className="ml-auto flex items-center gap-1.5">
+            {(["voice", "video"] as const).map((kind) => {
+              const can = calls.canCall(peer.id);
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  disabled={!can.ok}
+                  onClick={() => void calls.startCall(peer.id, kind)}
+                  aria-label={kind === "voice" ? `Voice call ${peer.full_name}` : `Video call ${peer.full_name}`}
+                  title={can.ok ? (kind === "voice" ? "Voice call" : "Video call") : (can.reason ?? "")}
+                  className="w-9 h-9 rounded-full border border-panel-border bg-panel-bg text-[16px] cursor-pointer flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-accent-soft"
+                >
+                  {kind === "voice" ? "📞" : "🎥"}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-1 bg-body-bg">

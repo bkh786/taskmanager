@@ -350,8 +350,17 @@ export async function updateUser(
     if (authError) return { error: authError.message };
   }
 
+  const { data: wasRow } = await supabase.from("app_users").select("is_active").eq("id", targetId).maybeSingle();
   const { error } = await supabase.from("app_users").update(update).eq("id", targetId);
   if (error) return { error: error.message };
+  // An inactive person can't sign in by any route: their login is blocked at the
+  // source (and re-enabled when they are made active again).
+  if ((wasRow?.is_active ?? true) !== isActive) {
+    const { error: banError } = await createAdminClient().auth.admin.updateUserById(targetId, {
+      ban_duration: isActive ? "none" : "876000h",
+    });
+    if (banError) return { error: `Saved, but the sign-in lock could not be updated: ${banError.message}` };
+  }
   if (projectsSubmitted) {
     const projectError = await setUserProjects(targetId, projectIds);
     if (projectError) return { error: projectError };

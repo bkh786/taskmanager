@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { pageInFront, playChime, showSystemNotification, unlockAudio } from "@/lib/alerts";
 
 export type Status = "available" | "away" | "offline";
 export type Person = { id: string; full_name: string; email: string };
@@ -104,6 +105,22 @@ function ChatProviderInner({
     focusRef.current = focusPeer;
   }, [focusPeer]);
 
+  const peopleRef = useRef<Person[]>([]);
+  useEffect(() => {
+    peopleRef.current = people;
+  }, [people]);
+
+  // Sound can only start after the person has used the page once.
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   const addMessages = useCallback((list: ChatMsg[]) => {
     setMessages((prev) => {
       const next = { ...prev };
@@ -156,7 +173,18 @@ function ChatProviderInner({
           const m = payload.new as ChatMsg;
           addMessages([m]);
           const watching = focusRef.current === m.sender_id && visibleRef.current && document.hasFocus();
-          if (!watching) alert();
+          if (!watching) {
+            alert();
+            // Away from the page: a system notification (the computer plays its own tone).
+            // Looking at the page: a short chime. Either way, once.
+            const who = peopleRef.current.find((p) => p.id === m.sender_id)?.full_name ?? "New message";
+            const shown =
+              !pageInFront() &&
+              showSystemNotification(who, m.body.length > 120 ? `${m.body.slice(0, 117)}…` : m.body, {
+                tag: `chat-${m.sender_id}`,
+              });
+            if (!shown) playChime();
+          }
         }
       )
       .on(

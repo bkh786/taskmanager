@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useChat } from "./chat-provider";
-import { ConversationView, Dot, PeopleList } from "./chat-ui";
+import { AlertsPrompt, ConversationView, Dot, PeopleList } from "./chat-ui";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -29,7 +29,9 @@ export function TeamChatView() {
   const onlineCount = people.filter((p) => statusOf(p.id) !== "offline").length;
 
   return (
-    <div className="flex h-[calc(100dvh-170px)] min-h-[460px] bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+    <div className="bg-panel-bg border border-panel-border rounded-[10px] overflow-hidden">
+    <AlertsPrompt />
+    <div className="flex h-[calc(100dvh-170px)] min-h-[460px]">
       <div className={`${peerId ? "hidden md:flex" : "flex"} flex-col w-full md:w-[340px] md:shrink-0 border-r border-panel-border min-h-0`}>
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <div className="text-[18px] font-bold text-text-main">Team Chat</div>
@@ -83,6 +85,7 @@ export function TeamChatView() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

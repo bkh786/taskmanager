@@ -23,6 +23,10 @@ export async function signIn(
     password,
   });
 
+  if (error && /banned/i.test(error.message)) {
+    // Deactivated accounts are locked at the source (see updateUser).
+    return { error: "This account is inactive or not provisioned. Contact your admin." };
+  }
   if (error || !data.user) {
     return { error: "Invalid email or password." };
   }

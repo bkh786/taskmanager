@@ -8,6 +8,8 @@ import { ProfileMenu } from "@/components/profile-menu";
 import { IdleLogout } from "@/components/idle-logout";
 import { ChatDock } from "@/components/chat/chat-dock";
 import { ChatProvider } from "@/components/chat/chat-provider";
+import { CallProvider } from "@/components/chat/call-provider";
+import { CallOverlay } from "@/components/chat/call-overlay";
 
 const ROLE_LABELS = {
   platform_owner: "Platform Owner",
@@ -47,6 +49,7 @@ export default async function AppLayout({
 
   return (
     <ChatProvider me={chatMe}>
+    <CallProvider>
     <div className="flex flex-1 min-h-0 bg-body-bg">
       <Sidebar appUser={appUser} />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 pb-15">
@@ -63,7 +66,9 @@ export default async function AppLayout({
       </main>
       <IdleLogout />
       {chatMe ? <ChatDock /> : null}
+      {chatMe ? <CallOverlay /> : null}
     </div>
+    </CallProvider>
     </ChatProvider>
   );
 }

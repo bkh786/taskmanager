@@ -111,6 +111,36 @@ export type Database = {
           },
         ]
       }
+      chat_calls: {
+        Row: {
+          id: string
+          org_id: string
+          caller_id: string
+          callee_id: string
+          kind: string
+          status: string
+          created_at: string
+          answered_at: string | null
+          ended_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          caller_id: string
+          callee_id: string
+          kind: string
+          status?: string
+          created_at?: string
+          answered_at?: string | null
+          ended_at?: string | null
+        }
+        Update: {
+          status?: string
+          answered_at?: string | null
+          ended_at?: string | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           body: string

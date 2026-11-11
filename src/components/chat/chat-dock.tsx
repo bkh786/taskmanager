@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useChat } from "./chat-provider";
-import { ConversationView, Dot, PeopleList } from "./chat-ui";
+import { AlertsPrompt, ConversationView, Dot, PeopleList } from "./chat-ui";
 
 /**
  * Gmail-style quick chat: a collapsed pill bottom-right that opens into a chat
@@ -94,6 +94,7 @@ export function ChatDock() {
           </button>
         </div>
       </div>
+      <AlertsPrompt />
       <div className="flex-1 flex min-h-0">
         {showList ? (
           <div className={`flex flex-col min-h-0 ${large ? "w-[270px] border-r border-panel-border" : "flex-1"}`}>
