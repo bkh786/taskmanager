@@ -70,6 +70,8 @@ export type DashboardData = {
   /** Table view: tasks still open -- delayed or pending (due today, this week or later). */
   tableTaskGroups: TaskGroup[];
   calendar: CalendarEntry[];
+  /** Months (YYYY-MM, newest first) that have tasks in scope. */
+  availableMonths: string[];
 };
 
 const ID_PAGE = 1000;
@@ -245,6 +247,20 @@ async function fetchCalendar(assigneeIds: string[] | null, monthIso: string): Pr
  * the active view: the database summarizes (counts, per-task rows, a month
  * of calendar entries) instead of the app downloading every instance.
  */
+/**
+ * The months (YYYY-MM) that actually have tasks in scope, newest first, for the
+ * month filter. Falls back to an empty list if the database function is not
+ * installed yet, in which case the caller shows only the current month.
+ */
+async function fetchTaskMonths(assigneeIds: string[] | null): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("dashboard_task_months" as never, {
+    p_assignee_ids: assigneeIds,
+  } as never);
+  if (error) return [];
+  return ((data ?? []) as unknown as { month: string }[]).map((r) => r.month);
+}
+
 export async function loadDashboard(
   appUser: AppUser,
   opts: {
@@ -275,11 +291,12 @@ export async function loadDashboard(
   const to = `${opts.monthIso}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
 
   const wantsGroups = opts.view === "table" || opts.view === "kanban";
-  const [summary, taskGroups, breakdownRows, calendar] = await Promise.all([
+  const [summary, taskGroups, breakdownRows, calendar, availableMonths] = await Promise.all([
     kpiIds && kpiIds.length === 0 ? Promise.resolve(emptyKpis) : fetchKpis(kpiIds),
     wantsGroups && !noData ? fetchTaskGroups(dataIds, from, to) : Promise.resolve([] as TaskGroup[]),
     opts.withBreakdown && !noData ? fetchBreakdown(dataIds, opts.breakdownMode) : Promise.resolve([] as BreakdownRow[]),
     opts.view === "calendar" && !noData ? fetchCalendar(dataIds, opts.monthIso) : Promise.resolve([] as CalendarEntry[]),
+    kpiIds && kpiIds.length === 0 ? Promise.resolve([] as string[]) : fetchTaskMonths(kpiIds),
   ]);
 
   // Table view: only open work -- delayed and pending -- never the completed history.
@@ -294,5 +311,6 @@ export async function loadDashboard(
     taskGroups,
     tableTaskGroups,
     calendar,
+    availableMonths,
   };
 }

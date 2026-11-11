@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isBillingCycle, PAYMENT_STATUSES } from "@/lib/billing-shared";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,7 +27,9 @@ export async function createTenant(
   const orgName = String(formData.get("orgName") ?? "").trim();
   const adminEmail = String(formData.get("adminEmail") ?? "").trim().toLowerCase();
   const adminName = String(formData.get("adminName") ?? "").trim();
-  const plan = String(formData.get("plan") ?? "Starter");
+  const planId = String(formData.get("planId") ?? "") || null;
+  const cycleInput = String(formData.get("billingCycle") ?? "");
+  const billingStart = String(formData.get("billingStartDate") ?? "") || null;
   const maxUsersRaw = String(formData.get("maxUsers") ?? "");
   const maxUsers = maxUsersRaw ? Math.max(1, Number(maxUsersRaw)) : null;
   const projectName = String(formData.get("projectName") ?? "").trim();
@@ -35,7 +38,7 @@ export async function createTenant(
   const inactiveDate = useInactiveDate
     ? String(formData.get("inactiveDate") ?? "") || null
     : null;
-  const billingStatus = String(formData.get("billingStatus") ?? "Trial");
+  const paymentStatus = PAYMENT_STATUSES.find((p) => p.value === String(formData.get("paymentStatus") ?? ""))?.value ?? "trial";
 
   if (!orgName || !adminEmail || !adminName) {
     return { error: "Organization name, admin name, and admin email are required." };
@@ -43,6 +46,8 @@ export async function createTenant(
 
   const supabase = await createClient();
   const admin = createAdminClient();
+  const { data: planRow } = planId ? await admin.from("plans").select("*").eq("id", planId).maybeSingle() : { data: null };
+  const cycle = isBillingCycle(cycleInput) ? cycleInput : (planRow?.billing_cycle ?? null);
 
   let slug = slugify(orgName);
   const { data: existing } = await supabase
@@ -57,9 +62,14 @@ export async function createTenant(
     .insert({
       name: orgName,
       slug,
-      plan,
+      plan: planRow?.name ?? "Starter",
+      plan_id: planRow?.id ?? null,
+      billing_cycle: cycle,
+      billing_start_date: billingStart,
+      next_billing_date: billingStart,
+      payment_status: paymentStatus,
       max_users: maxUsers,
-      billing_status: billingStatus,
+      billing_status: PAYMENT_STATUSES.find((p) => p.value === paymentStatus)?.label ?? "Trial",
       is_active: status === "Active",
       auto_deactivate_date: inactiveDate,
     })

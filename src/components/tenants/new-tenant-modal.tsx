@@ -1,11 +1,15 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { BILLING_CYCLES, PAYMENT_STATUSES, formatMoney, cycleLabel } from "@/lib/billing-shared";
+import type { Tables } from "@/types/database.types";
 import { createTenant, type TenantFormState } from "@/app/(app)/tenants/actions";
 
 const initialState: TenantFormState = { error: null };
 
-export function NewTenantModal() {
+export function NewTenantModal({ plans }: { plans: Tables<"plans">[] }) {
+  const [planId, setPlanId] = useState(plans[0]?.id ?? "");
+  const [cycle, setCycle] = useState("");
   const [open, setOpen] = useState(false);
   const [useInactiveDate, setUseInactiveDate] = useState(false);
   const [status, setStatus] = useState<"Active" | "Inactive">("Active");
@@ -87,13 +91,20 @@ export function NewTenantModal() {
                     Plan
                   </label>
                   <select
-                    name="plan"
-                    defaultValue="Starter"
+                    name="planId"
+                    value={planId}
+                    onChange={(e) => {
+                      setPlanId(e.target.value);
+                      setCycle("");
+                    }}
                     className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
                   >
-                    <option>Starter</option>
-                    <option>Business</option>
-                    <option>Enterprise</option>
+                    <option value="">No plan yet</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {formatMoney(p.price, p.currency)} / {cycleLabel(p.billing_cycle).toLowerCase()}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -160,19 +171,44 @@ export function NewTenantModal() {
                 ) : null}
               </div>
 
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-xs font-semibold text-text-sub block mb-1.5">Billing cycle</label>
+                  <select
+                    name="billingCycle"
+                    value={cycle || plans.find((p) => p.id === planId)?.billing_cycle || ""}
+                    onChange={(e) => setCycle(e.target.value)}
+                    className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+                  >
+                    <option value="">—</option>
+                    {BILLING_CYCLES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-text-sub block mb-1.5">Cycle start date</label>
+                  <input
+                    type="date"
+                    name="billingStartDate"
+                    className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="text-xs font-semibold text-text-sub block mb-1.5">
-                  Billing status
-                </label>
+                <label className="text-xs font-semibold text-text-sub block mb-1.5">Payment status</label>
                 <select
-                  name="billingStatus"
-                  defaultValue="Trial"
+                  name="paymentStatus"
+                  defaultValue="trial"
                   className="w-full px-2.5 py-2 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
                 >
-                  <option>Paid</option>
-                  <option>Trial</option>
-                  <option>Overdue</option>
-                  <option>Cancelled</option>
+                  {PAYMENT_STATUSES.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,15 +1,19 @@
 import { requireRole } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getTenants } from "@/lib/tenant-data";
 import { TenantsTable } from "@/components/tenants/tenants-table";
 import { NewTenantModal } from "@/components/tenants/new-tenant-modal";
 
 export default async function TenantsPage() {
   await requireRole(["platform_owner"]);
-  const tenants = await getTenants();
+  const [tenants, { data: plans }] = await Promise.all([
+    getTenants(),
+    createAdminClient().from("plans").select("*").eq("is_active", true).order("price"),
+  ]);
 
   const activeTenants = tenants.filter((t) => t.is_active).length;
   const totalSeats = tenants.reduce((sum, t) => sum + (t.max_users ?? 0), 0);
-  const onTrial = tenants.filter((t) => t.billing_status === "Trial").length;
+  const onTrial = tenants.filter((t) => t.payment_status === "trial").length;
 
   return (
     <div>
@@ -20,7 +24,7 @@ export default async function TenantsPage() {
             Create and provision organizations on the platform
           </div>
         </div>
-        <NewTenantModal />
+        <NewTenantModal plans={plans ?? []} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-5.5">

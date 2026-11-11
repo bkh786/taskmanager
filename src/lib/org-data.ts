@@ -13,6 +13,7 @@ export type Employee = {
   designation_id: string | null;
   is_active: boolean;
   reports_to: string | null;
+  mobile_number?: string | null;
   /** Filled in by the user-management listings (getOrgUsers / getTenantUsers). */
   designation_name?: string | null;
   manager_name?: string | null;
@@ -149,7 +150,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name), designation:designations(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects(name), designation:designations(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
     .order("full_name");
@@ -170,6 +171,7 @@ export async function getOrgUsers(appUser: AppUser): Promise<Employee[]> {
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
+    mobile_number: r.mobile_number,
     designation_name: (r.designation as { name: string } | null)?.name ?? null,
     manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));

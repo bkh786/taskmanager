@@ -107,7 +107,7 @@ export default async function OrgDashboardPage({
       <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
         <ViewTabs view={view} />
         <div className="flex items-center gap-3 flex-wrap">
-          <DatasetControls month={monthIso} userStatus={userStatus} />
+          <DatasetControls month={monthIso} userStatus={userStatus} availableMonths={data.availableMonths} />
           <OrgFilterControls
             filterMode={filterMode}
             filterValue={filterValue}

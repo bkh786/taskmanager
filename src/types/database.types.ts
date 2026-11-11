@@ -298,6 +298,165 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          price: number
+          currency: string
+          billing_cycle: string
+          included_users: number | null
+          extra_user_price: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          price?: number
+          currency?: string
+          billing_cycle?: string
+          included_users?: number | null
+          extra_user_price?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          price?: number
+          currency?: string
+          billing_cycle?: string
+          included_users?: number | null
+          extra_user_price?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          id: string
+          org_id: string
+          plan_id: string | null
+          invoice_number: string
+          plan_name: string | null
+          billing_cycle: string | null
+          period_start: string
+          period_end: string | null
+          amount: number
+          currency: string
+          status: string
+          issued_on: string
+          due_on: string
+          paid_on: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          notes: string | null
+          emailed_at: string | null
+          overdue_notified_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          plan_id?: string | null
+          invoice_number?: string
+          plan_name?: string | null
+          billing_cycle?: string | null
+          period_start: string
+          period_end?: string | null
+          amount?: number
+          currency?: string
+          status?: string
+          issued_on?: string
+          due_on?: string
+          paid_on?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          notes?: string | null
+          emailed_at?: string | null
+          overdue_notified_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          plan_id?: string | null
+          invoice_number?: string
+          plan_name?: string | null
+          billing_cycle?: string | null
+          period_start?: string
+          period_end?: string | null
+          amount?: number
+          currency?: string
+          status?: string
+          issued_on?: string
+          due_on?: string
+          paid_on?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          notes?: string | null
+          emailed_at?: string | null
+          overdue_notified_at?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      platform_email_settings: {
+        Row: {
+          id: number
+          smtp_host: string | null
+          smtp_port: number | null
+          smtp_username: string | null
+          smtp_password: string | null
+          smtp_secure: string
+          smtp_from_email: string | null
+          smtp_from_name: string | null
+          reply_to: string | null
+          email_signature: string | null
+          billing_cc: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
+          smtp_password?: string | null
+          smtp_secure?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          reply_to?: string | null
+          email_signature?: string | null
+          billing_cc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          smtp_host?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
+          smtp_password?: string | null
+          smtp_secure?: string
+          smtp_from_email?: string | null
+          smtp_from_name?: string | null
+          reply_to?: string | null
+          email_signature?: string | null
+          billing_cc?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_email_templates: {
+        Row: { event: string; enabled: boolean; subject: string | null; body: string | null; updated_at: string }
+        Insert: { event: string; enabled?: boolean; subject?: string | null; body?: string | null; updated_at?: string }
+        Update: { event?: string; enabled?: boolean; subject?: string | null; body?: string | null; updated_at?: string }
+        Relationships: []
+      }
       organizations: {
         Row: {
           auto_deactivate_date: string | null
@@ -325,6 +484,14 @@ export type Database = {
           smtp_from_name: string | null
           smtp_secure: string
           timezone: string
+          plan_id: string | null
+          billing_cycle: string | null
+          billing_start_date: string | null
+          next_billing_date: string | null
+          payment_status: string
+          price_override: number | null
+          billing_email: string | null
+          billing_notes: string | null
         }
         Insert: {
           auto_deactivate_date?: string | null
@@ -352,6 +519,14 @@ export type Database = {
           smtp_from_name?: string | null
           smtp_secure?: string
           timezone?: string
+          plan_id?: string | null
+          billing_cycle?: string | null
+          billing_start_date?: string | null
+          next_billing_date?: string | null
+          payment_status?: string
+          price_override?: number | null
+          billing_email?: string | null
+          billing_notes?: string | null
         }
         Update: {
           auto_deactivate_date?: string | null
@@ -379,6 +554,14 @@ export type Database = {
           smtp_from_name?: string | null
           smtp_secure?: string
           timezone?: string
+          plan_id?: string | null
+          billing_cycle?: string | null
+          billing_start_date?: string | null
+          next_billing_date?: string | null
+          payment_status?: string
+          price_override?: number | null
+          billing_email?: string | null
+          billing_notes?: string | null
         }
         Relationships: []
       }

@@ -106,7 +106,7 @@ export default async function DashboardPage({
       <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
         <ViewTabs view={view} />
         <div className="flex items-center gap-2 flex-wrap">
-          <DatasetControls month={monthIso} userStatus={userStatus} showStatus={isManager} />
+          <DatasetControls month={monthIso} userStatus={userStatus} availableMonths={data.availableMonths} showStatus={isManager} />
           {isManager ? (
             <FilterControls
               filterMode={filterMode}

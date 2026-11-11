@@ -260,6 +260,8 @@ export async function updateUser(
     is_active: boolean;
     system_role?: AppUser["system_role"];
     reports_to?: string | null;
+    mobile_number?: string | null;
+    email?: string;
   } = {
     full_name: fullName,
     employee_code: employeeCode,
@@ -286,6 +288,38 @@ export async function updateUser(
       }
       update.reports_to = newManager;
     }
+  }
+
+  // Org admins and the platform owner may also change the sign-in email and
+  // mobile number. The email lives in Auth as well, so both are updated.
+  let newEmail: string | null = null;
+  if (appUser.system_role === "master_admin" || appUser.system_role === "platform_owner") {
+    const mobile = formData.get("mobileNumber");
+    if (mobile !== null) update.mobile_number = String(mobile).trim() || null;
+    const emailInput = formData.get("email");
+    if (emailInput !== null) {
+      const email = String(emailInput).trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "Enter a valid email address." };
+      const { data: current } = await supabase.from("app_users").select("email, org_id").eq("id", targetId).single();
+      if (!current) return { error: "User not found." };
+      if (appUser.system_role === "master_admin" && current.org_id !== appUser.org_id) {
+        return { error: "That user is not in your organization." };
+      }
+      if (email !== current.email.toLowerCase()) {
+        const { data: clash } = await supabase.from("app_users").select("id").ilike("email", email).neq("id", targetId).maybeSingle();
+        if (clash) return { error: "Another user already has that email." };
+        newEmail = email;
+        update.email = email;
+      }
+    }
+  }
+
+  if (newEmail) {
+    const { error: authError } = await createAdminClient().auth.admin.updateUserById(targetId, {
+      email: newEmail,
+      email_confirm: true,
+    });
+    if (authError) return { error: authError.message };
   }
 
   const { error } = await supabase.from("app_users").update(update).eq("id", targetId);

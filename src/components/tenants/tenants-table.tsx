@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { fmtDate } from "@/lib/task-status";
+import { cycleLabel, paymentLabel } from "@/lib/billing-shared";
 import { useColumnFilters, type FilterCol } from "@/components/table-filters";
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
@@ -10,10 +11,11 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 const BILLING_STYLE: Record<string, { bg: string; color: string }> = {
-  Paid: { bg: "var(--success-soft)", color: "var(--success)" },
-  Trial: { bg: "var(--accent-soft)", color: "var(--accent)" },
-  Overdue: { bg: "var(--danger-soft)", color: "var(--danger)" },
-  Cancelled: { bg: "var(--chip-bg)", color: "var(--text-faint)" },
+  paid: { bg: "var(--success-soft)", color: "var(--success)" },
+  trial: { bg: "var(--accent-soft)", color: "var(--accent)" },
+  pending: { bg: "var(--accent-soft)", color: "var(--accent)" },
+  overdue: { bg: "var(--danger-soft)", color: "var(--danger)" },
+  cancelled: { bg: "var(--chip-bg)", color: "var(--text-faint)" },
 };
 
 export type TenantRow = {
@@ -25,6 +27,9 @@ export type TenantRow = {
   max_users: number | null;
   is_active: boolean | null;
   billing_status: string;
+  billing_cycle: string | null;
+  next_billing_date: string | null;
+  payment_status: string;
   created_at: string | null;
 };
 
@@ -34,7 +39,9 @@ const COLS: FilterCol<TenantRow>[] = [
   { key: "plan", label: "Plan", value: (t) => t.plan },
   { key: "users", label: "Users / Limit", value: (t) => `${t.userCount} / ${t.max_users ?? "∞"}` },
   { key: "status", label: "Status", value: (t) => (t.is_active ? "Active" : "Inactive") },
-  { key: "billing", label: "Billing", value: (t) => t.billing_status },
+  { key: "cycle", label: "Cycle", value: (t) => cycleLabel(t.billing_cycle) },
+  { key: "next", label: "Next billing", value: (t) => (t.next_billing_date ? fmtDate(t.next_billing_date) : "—") },
+  { key: "billing", label: "Payment", value: (t) => paymentLabel(t.payment_status) },
   { key: "created", label: "Created", value: (t) => (t.created_at ? fmtDate(t.created_at) : "—") },
 ];
 
@@ -66,7 +73,7 @@ export function TenantsTable({ tenants }: { tenants: TenantRow[] }) {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-6 text-center text-[13px] text-text-faint">
+              <td colSpan={10} className="px-4 py-6 text-center text-[13px] text-text-faint">
                 {tenants.length === 0 ? "No tenants yet." : "No tenants match these filters."}
               </td>
             </tr>
@@ -74,7 +81,7 @@ export function TenantsTable({ tenants }: { tenants: TenantRow[] }) {
             rows.map((t) => {
               const status = t.is_active ? "Active" : "Inactive";
               const statusStyle = STATUS_STYLE[status];
-              const billingStyle = BILLING_STYLE[t.billing_status] ?? BILLING_STYLE.Trial;
+              const billingStyle = BILLING_STYLE[t.payment_status] ?? BILLING_STYLE.pending;
               return (
                 <tr key={t.id}>
                   <td className={`${td} text-[13.5px] font-semibold text-text-main`}>{t.name}</td>
@@ -91,12 +98,16 @@ export function TenantsTable({ tenants }: { tenants: TenantRow[] }) {
                       {status}
                     </span>
                   </td>
+                  <td className={`${td} text-[13px] text-text-body`}>{cycleLabel(t.billing_cycle)}</td>
+                  <td className={`${td} text-[13px] text-text-body`}>
+                    {t.next_billing_date ? fmtDate(t.next_billing_date) : "—"}
+                  </td>
                   <td className={td}>
                     <span
                       className="text-xs font-semibold px-2.5 py-[3px] rounded-[5px]"
                       style={{ background: billingStyle.bg, color: billingStyle.color }}
                     >
-                      {t.billing_status}
+                      {paymentLabel(t.payment_status)}
                     </span>
                   </td>
                   <td className={`${td} text-[13px] text-text-body`}>

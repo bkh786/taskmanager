@@ -96,6 +96,30 @@ export function EditUserModal({
             />
           </div>
 
+          {canEditRole ? (
+            <>
+              <div>
+                <label className="text-xs font-semibold text-text-sub block mb-1.5">Email (sign-in id)</label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  defaultValue={target.email}
+                  className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-text-sub block mb-1.5">Mobile number</label>
+                <input
+                  name="mobileNumber"
+                  type="tel"
+                  defaultValue={target.mobile_number ?? ""}
+                  className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
+                />
+              </div>
+            </>
+          ) : null}
+
           <div>
             <label className="text-xs font-semibold text-text-sub block mb-1.5">
               Employee code

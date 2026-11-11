@@ -3,17 +3,20 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { todayIso } from "@/lib/task-status";
 
-function monthOptions(n: number): { value: string; label: string }[] {
-  const out: { value: string; label: string }[] = [];
-  const today = new Date(todayIso() + "T00:00:00");
-  for (let i = 0; i < n; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    out.push({
-      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }) + (i === 0 ? " (current)" : ""),
-    });
-  }
-  return out;
+function labelFor(value: string, isCurrent: boolean): string {
+  const [y, m] = value.split("-").map(Number);
+  return (
+    new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }) +
+    (isCurrent ? " (current)" : "")
+  );
+}
+
+/** Only months that have tasks, plus the current month and whatever is selected. */
+function monthOptions(available: string[], selected: string, current: string) {
+  const set = new Set<string>([...available, current, selected]);
+  return [...set]
+    .sort((a, b) => (a < b ? 1 : -1))
+    .map((value) => ({ value, label: labelFor(value, value === current) }));
 }
 
 const SELECT =
@@ -27,15 +30,17 @@ export function DatasetControls({
   month,
   userStatus,
   showStatus = true,
+  availableMonths = [],
 }: {
   month: string;
   userStatus: string;
   showStatus?: boolean;
+  availableMonths?: string[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const current = monthOptions(1)[0].value;
+  const current = todayIso().slice(0, 7);
 
   function setParam(key: string, value: string, isDefault: boolean) {
     const p = new URLSearchParams(params.toString());
@@ -44,8 +49,7 @@ export function DatasetControls({
     router.push(`${pathname}?${p.toString()}`);
   }
 
-  const options = monthOptions(24);
-  if (!options.some((o) => o.value === month)) options.push({ value: month, label: month });
+  const options = monthOptions(availableMonths, month, current);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">

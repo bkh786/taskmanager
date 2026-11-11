@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { paymentLabel } from "@/lib/billing-shared";
 import type { Tables } from "@/types/database.types";
 import type { Employee } from "@/lib/org-data";
 
@@ -65,7 +66,8 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
   const billingCounts: Record<string, number> = {};
   for (const t of tenants) {
-    billingCounts[t.billing_status] = (billingCounts[t.billing_status] ?? 0) + 1;
+    const label = paymentLabel(t.payment_status);
+    billingCounts[label] = (billingCounts[label] ?? 0) + 1;
   }
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -117,7 +119,7 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
   const { data, error } = await admin
     .from("app_users")
     .select(
-      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name), designation:designations(name)"
+      "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, mobile_number, project:projects(name), designation:designations(name)"
     )
     .eq("org_id", orgId)
     .order("full_name");
@@ -135,6 +137,7 @@ export async function getTenantUsers(orgId: string): Promise<Employee[]> {
     designation_id: r.designation_id,
     is_active: r.is_active ?? true,
     reports_to: r.reports_to,
+    mobile_number: r.mobile_number,
     designation_name: (r.designation as { name: string } | null)?.name ?? null,
     manager_name: r.reports_to ? (nameById.get(r.reports_to) ?? null) : null,
   }));

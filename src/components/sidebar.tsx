@@ -11,6 +11,9 @@ export function navFor(role: AppUser["system_role"]) {
       return [
         { href: "/platform-dashboard", label: "Platform Dashboard" },
         { href: "/tenants", label: "Tenants" },
+        { href: "/plan-master", label: "Plan Master" },
+        { href: "/invoices", label: "Invoices" },
+        { href: "/platform-settings", label: "Platform Settings" },
         { href: "/platform-reports", label: "Reports" },
         { href: "/bulk-upload-users", label: "Bulk Upload Users" },
       ];
@@ -42,6 +45,9 @@ export function navFor(role: AppUser["system_role"]) {
 
 
 const ICON_PATHS: Record<string, string[]> = {
+  plans: ["M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z", "M7.5 7.5h.01"],
+  invoices: ["M6 2h12v20l-3-2-3 2-3-2-3 2z", "M9 7h6", "M9 11h6", "M9 15h4"],
+  mail: ["M3 5h18v14H3z", "M3 7l9 6 9-6"],
   tasks: ["M9 11l3 3L22 4", "M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"],
   chat: ["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", "M8 9h8", "M8 13h5"],
   // dashboard grid
@@ -65,6 +71,9 @@ const ICON_PATHS: Record<string, string[]> = {
 
 function iconKeyFor(href: string): string {
   if (href.includes("team-chat")) return "chat";
+  if (href.includes("plan-master")) return "plans";
+  if (href.includes("invoices")) return "invoices";
+  if (href.includes("platform-settings")) return "mail";
   if (href.includes("task-management")) return "tasks";
   if (href.includes("bulk-upload")) return "upload";
   if (href.includes("bulk-copy")) return "copy";

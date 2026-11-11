@@ -125,12 +125,12 @@ export async function resolveSmtpHost(host: string): Promise<{ address: string; 
   return addrs.find((a) => a.family === 4) ?? addrs[0];
 }
 
-type SmtpConnection = Pick<
+export type SmtpConnection = Pick<
   OrgEmailConfig,
   "smtp_host" | "smtp_port" | "smtp_username" | "smtp_password" | "smtp_secure"
 >;
 
-async function buildTransport(cfg: SmtpConnection) {
+export async function buildTransport(cfg: SmtpConnection) {
   const host = cfg.smtp_host!;
   const port = cfg.smtp_port ?? 587;
   const mode = cfg.smtp_secure;
@@ -151,7 +151,7 @@ async function buildTransport(cfg: SmtpConnection) {
   });
 }
 
-function fromHeader(cfg: Pick<OrgEmailConfig, "smtp_from_email" | "smtp_from_name">) {
+export function fromHeader(cfg: Pick<OrgEmailConfig, "smtp_from_email" | "smtp_from_name">) {
   return cfg.smtp_from_name
     ? { name: cfg.smtp_from_name.replace(/[\r\n"<>]/g, " ").trim(), address: cfg.smtp_from_email! }
     : cfg.smtp_from_email!;
@@ -161,7 +161,7 @@ export function isSmtpConfigured(cfg: OrgEmailConfig | null): boolean {
   return !!cfg && !!cfg.smtp_host && !!cfg.smtp_port && !!cfg.smtp_from_email;
 }
 
-function friendlyError(err: unknown): string {
+export function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "unknown error";
   return msg.replace(/\s+/g, " ").slice(0, 220);
 }
