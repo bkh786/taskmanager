@@ -53,7 +53,7 @@ export function TenantBillingForm({ org, plans, discounts }: { org: Tables<"orga
               <option value="">No plan</option>
               {choices.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.label}
+                  {c.label} — {formatMoney(c.price, c.plan.currency)}
                 </option>
               ))}
             </select>
@@ -140,7 +140,7 @@ export function TenantManagementForm({ org, userCount }: { org: Tables<"organiza
         const fd = new FormData(e.currentTarget);
         startSave(() => formAction(fd));
       }}
-      className={`${card} flex flex-col gap-4 max-w-[560px]`}
+      className={`${card} flex flex-col gap-4`}
     >
       <input type="hidden" name="orgId" value={org.id} />
       <div className="text-[14.5px] font-bold text-text-main">Tenant management</div>

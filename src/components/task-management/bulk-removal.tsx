@@ -106,7 +106,7 @@ export function BulkRemoval({
   // ------------------------------------------------------------- step 2: reason
   if (step === "reason") {
     return (
-      <form action={submitRemoval} className="bg-panel-bg border border-panel-border rounded-xl px-6 py-5 max-w-[720px] flex flex-col gap-4">
+      <form action={submitRemoval} className="bg-panel-bg border border-panel-border rounded-xl px-6 py-5 flex flex-col gap-4">
         <div>
           <div className="text-[16px] font-bold text-text-main">Remove {chosen.length} task{chosen.length === 1 ? "" : "s"}</div>
           <div className="text-[12.5px] text-text-sub mt-1">

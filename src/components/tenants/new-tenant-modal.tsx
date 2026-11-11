@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { PAYMENT_STATUSES, planChoices, type Discounts } from "@/lib/billing-shared";
+import { PAYMENT_STATUSES, formatMoney, planChoices, type Discounts } from "@/lib/billing-shared";
 import type { Tables } from "@/types/database.types";
 import { createTenant, type TenantFormState } from "@/app/(app)/tenants/actions";
 
@@ -99,7 +99,7 @@ export function NewTenantModal({ plans, discounts }: { plans: Tables<"plans">[];
                     <option value="">No plan yet</option>
                     {choices.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {c.label}
+                        {c.label} — {formatMoney(c.price, c.plan.currency)}
                       </option>
                     ))}
                   </select>

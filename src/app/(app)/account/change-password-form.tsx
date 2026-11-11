@@ -15,7 +15,7 @@ export function ChangePasswordForm() {
   return (
     <form
       action={formAction}
-      className="bg-panel-bg border border-panel-border rounded-[10px] p-[22px] max-w-[420px] flex flex-col gap-3.5"
+      className="bg-panel-bg border border-panel-border rounded-[10px] p-[22px] flex flex-col gap-3.5"
     >
       <div>
         <label className="text-xs font-semibold text-text-sub block mb-1.5">

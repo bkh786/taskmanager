@@ -173,12 +173,15 @@ export function ReportFilters({
   applied,
   defaultFrom,
   defaultTo,
+  view,
 }: {
   options: ReportOptions;
   initial: AppliedFilters;
   applied: boolean;
   defaultFrom: string;
   defaultTo: string;
+  /** Which Reports tab the filters belong to; kept in the URL. */
+  view?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -214,6 +217,7 @@ export function ReportFilters({
 
   function apply() {
     const p = new URLSearchParams();
+    if (view) p.set("view", view);
     p.set("applied", "1");
     if (f.months.length === 0) {
       if (f.dateFrom) p.set("dateFrom", f.dateFrom);
@@ -242,7 +246,7 @@ export function ReportFilters({
       statuses: [],
       assignedBy: [],
     });
-    router.push(pathname);
+    router.push(view ? `${pathname}?view=${view}` : pathname);
   }
 
   const monthsChosen = f.months.length > 0;

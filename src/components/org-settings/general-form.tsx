@@ -44,7 +44,7 @@ export function GeneralForm({
     >
       {orgId ? <input type="hidden" name="orgId" value={orgId} /> : null}
       <div className="text-[14.5px] font-bold text-text-main mb-4">Company profile</div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-[640px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         <div>
           <label className={label}>Company name</label>
           <input name="name" required defaultValue={name} className={input} />

@@ -2,7 +2,9 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { delayDays, todayIso, fmtTime } from "@/lib/task-status";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppUser } from "@/lib/auth";
+import type { Database } from "@/types/database.types";
 
 export type ReportRow = {
   instanceId: string;
@@ -24,6 +26,10 @@ export type ReportRow = {
   designationId: string;
   role: string;
   assignedById: string;
+  assigneeId: string;
+  employeeCode: string;
+  managerId: string;
+  managerName: string;
 };
 
 export type ReportFilters = {
@@ -58,7 +64,10 @@ type RawRow = {
   comment: string | null;
   task: { task_name: string; org_id: string | null; created_by: string | null } | null;
   assignee: {
+    id: string;
     full_name: string;
+    employee_code: string | null;
+    reports_to: string | null;
     date_of_joining: string | null;
     project_id: string | null;
     designation_id: string | null;
@@ -73,12 +82,12 @@ const PAGE = 1000; // rows per API response
 const SELECT = `id, created_at, due_date, completed_at, status, attachment_url, comment,
      task:tasks!task_instances_task_id_fkey ( task_name, org_id, created_by ),
      assignee:app_users!task_instances_assignee_id_fkey (
-       full_name, date_of_joining, project_id, designation_id, system_role,
+       id, employee_code, reports_to, full_name, date_of_joining, project_id, designation_id, system_role,
        designation:designations(name),
        project:projects(name)
      )`;
 
-function mapRow(r: RawRow, orgName: string): ReportRow {
+function mapRow(r: RawRow, orgName: string, managers: Map<string, string>): ReportRow {
   return {
     instanceId: r.id,
     taskName: r.task!.task_name,
@@ -99,7 +108,25 @@ function mapRow(r: RawRow, orgName: string): ReportRow {
     designationId: r.assignee!.designation_id ?? "",
     role: r.assignee!.system_role,
     assignedById: r.task!.created_by ?? "",
+    assigneeId: r.assignee!.id,
+    employeeCode: r.assignee!.employee_code ?? "",
+    managerId: r.assignee!.reports_to ?? "",
+    managerName: r.assignee!.reports_to ? (managers.get(r.assignee!.reports_to) ?? "") : "",
   };
+}
+
+/** Names of the assignees' reporting managers, looked up once per distinct id. */
+async function loadManagerNames(
+  client: SupabaseClient<Database>,
+  raw: RawRow[]
+): Promise<Map<string, string>> {
+  const ids = [...new Set(raw.map((r) => r.assignee?.reports_to).filter((x): x is string => !!x))];
+  const out = new Map<string, string>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data } = await client.from("app_users").select("id, full_name").in("id", ids.slice(i, i + 100));
+    for (const u of data ?? []) out.set(u.id, u.full_name);
+  }
+  return out;
 }
 
 function endOfMonthIso(yyyyMM: string): string {
@@ -203,7 +230,8 @@ export async function getReportRows(
     if ((data?.length ?? 0) < PAGE) break;
   }
 
-  const rows = raw.filter((r) => r.task && r.assignee).map((r) => mapRow(r, ""));
+  const managers = await loadManagerNames(supabase, raw);
+  const rows = raw.filter((r) => r.task && r.assignee).map((r) => mapRow(r, "", managers));
 
   return applyFilters(rows, filters);
 }
@@ -238,9 +266,10 @@ export async function getPlatformReportRows(filters: ReportFilters = {}): Promis
 
   const orgNames = new Map((orgs ?? []).map((o) => [o.id, o.name]));
 
+  const managers = await loadManagerNames(admin, raw);
   const rows = raw
     .filter((r) => r.task && r.assignee)
-    .map((r) => mapRow(r, orgNames.get(r.task!.org_id ?? "") ?? "—"));
+    .map((r) => mapRow(r, orgNames.get(r.task!.org_id ?? "") ?? "—", managers));
 
   return applyFilters(rows, filters);
 }

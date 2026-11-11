@@ -74,7 +74,7 @@ export function CreateTaskModal({
         <div
           className={
             inline
-              ? "w-full max-w-[640px] bg-panel-bg border border-panel-border rounded-xl px-7 py-6"
+              ? "w-full bg-panel-bg border border-panel-border rounded-xl px-7 py-6"
               : "w-[480px] max-w-[calc(100vw-24px)] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-7 py-6 shadow-xl"
           }
         >
@@ -91,9 +91,9 @@ export function CreateTaskModal({
               setCreated(false);
               formAction(fd);
             }}
-            className="flex flex-col gap-3.5"
+            className={inline ? "grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-4 items-start" : "flex flex-col gap-3.5"}
           >
-            <div>
+            <div className="lg:col-span-2">
               <label className="text-xs font-semibold text-text-sub block mb-1.5">
                 Task name
               </label>
@@ -104,7 +104,7 @@ export function CreateTaskModal({
                 className="w-full px-2.5 py-2.5 border border-panel-border rounded-md text-[13.5px] bg-panel-bg text-text-main"
               />
             </div>
-            <div>
+            <div className="lg:col-span-2">
               <label className="text-xs font-semibold text-text-sub block mb-1.5">
                 Description
               </label>
@@ -303,10 +303,10 @@ export function CreateTaskModal({
             </div>
 
             {state.error ? (
-              <div className="text-[12.5px] text-danger">{state.error}</div>
+              <div className="text-[12.5px] text-danger lg:col-span-2">{state.error}</div>
             ) : null}
 
-            <div className="flex justify-end gap-2.5 pt-1">
+            <div className="flex justify-end gap-2.5 pt-1 lg:col-span-2">
               {inline ? null : (
                 <button
                   type="button"
