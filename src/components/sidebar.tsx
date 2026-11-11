@@ -19,6 +19,7 @@ export function navFor(role: AppUser["system_role"]) {
         { href: "/org-dashboard", label: "Dashboard" },
         { href: "/org-settings", label: "Organization Settings" },
         { href: "/users", label: "User Management" },
+        { href: "/task-management", label: "Task Management" },
         { href: "/reports", label: "Reports" },
         { href: "/team-chat", label: "Team Chat" },
       ];
@@ -26,7 +27,7 @@ export function navFor(role: AppUser["system_role"]) {
       return [
         { href: "/dashboard", label: "Dashboard" },
         { href: "/users", label: "User Management" },
-        { href: "/bulk-copy", label: "Bulk Task Copy" },
+        { href: "/task-management", label: "Task Management" },
         { href: "/reports", label: "Reports" },
         { href: "/team-chat", label: "Team Chat" },
       ];
@@ -41,6 +42,7 @@ export function navFor(role: AppUser["system_role"]) {
 
 
 const ICON_PATHS: Record<string, string[]> = {
+  tasks: ["M9 11l3 3L22 4", "M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"],
   chat: ["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", "M8 9h8", "M8 13h5"],
   // dashboard grid
   dashboard: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
@@ -63,6 +65,7 @@ const ICON_PATHS: Record<string, string[]> = {
 
 function iconKeyFor(href: string): string {
   if (href.includes("team-chat")) return "chat";
+  if (href.includes("task-management")) return "tasks";
   if (href.includes("bulk-upload")) return "upload";
   if (href.includes("bulk-copy")) return "copy";
   if (href.includes("report")) return "reports";

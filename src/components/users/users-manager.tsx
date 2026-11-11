@@ -10,20 +10,12 @@ import { ExportUsersButton } from "./export-users-button";
 import { useColumnFilters, type FilterCol } from "@/components/table-filters";
 import { BulkUsersUploadForm } from "@/components/bulk-upload-users/upload-form";
 
-const ROLE_LABELS: Record<AppUser["system_role"], string> = {
-  platform_owner: "Platform Owner",
-  master_admin: "Org Admin",
-  reporting_manager: "Reporting Manager",
-  user: "Employee",
-};
-
 type ModalState = { kind: "none" } | { kind: "add" } | { kind: "replace" | "edit"; target: Employee };
 
 type SortKey =
   | "full_name"
   | "employee_code"
   | "email"
-  | "role"
   | "project"
   | "designation"
   | "manager";
@@ -35,7 +27,6 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "full_name", label: "Name" },
   { key: "employee_code", label: "Employee Code" },
   { key: "email", label: "Email" },
-  { key: "role", label: "Role" },
   { key: "project", label: "Project" },
   { key: "designation", label: "Designation" },
   { key: "manager", label: "Reporting Manager" },
@@ -49,8 +40,6 @@ function sortValue(u: Employee, key: SortKey): string {
       return u.employee_code;
     case "email":
       return u.email;
-    case "role":
-      return ROLE_LABELS[u.system_role];
     case "project":
       return u.project_name ?? "";
     case "designation":
@@ -120,7 +109,6 @@ export function UsersManager({
             u.full_name,
             u.employee_code,
             u.email,
-            ROLE_LABELS[u.system_role],
             u.project_name ?? "",
             u.designation_name ?? "",
             u.manager_name ?? "",
@@ -193,7 +181,7 @@ export function UsersManager({
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, code, email, role, project, designation or manager…"
+          placeholder="Search by name, code, email, project, designation or manager…"
           className="w-full max-w-[420px] px-3 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
         />
       </div>
@@ -228,13 +216,13 @@ export function UsersManager({
           <tbody>
             {visibleUsers.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-[13px] text-text-faint">
+                <td colSpan={7} className="px-4 py-6 text-center text-[13px] text-text-faint">
                   {users.length === 0 ? "No users yet." : "No users match your search."}
                 </td>
               </tr>
             ) : (
               visibleUsers.map((u) => (
-                <tr key={u.id}>
+                <tr key={u.id} className={u.is_active ? undefined : "tm-inactive"}>
                   <td className="px-4 py-2.5 text-[13.5px] font-semibold text-text-main border-b border-row-hover-border">
                     {u.full_name}
                     {!u.is_active ? (
@@ -248,9 +236,6 @@ export function UsersManager({
                   </td>
                   <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
                     {u.email}
-                  </td>
-                  <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
-                    {ROLE_LABELS[u.system_role]}
                   </td>
                   <td className="px-4 py-2.5 text-[13px] text-text-body border-b border-row-hover-border">
                     {u.project_name ?? "—"}

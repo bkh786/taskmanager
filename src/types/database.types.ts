@@ -788,6 +788,30 @@ export type Database = {
           task_name: string
         }[]
       }
+      dashboard_task_rows_window: {
+        Args: { p_assignee_ids: string[] | null; p_from: string; p_to: string }
+        Returns: {
+          assignee_id: string | null
+          assignee_manager_name: string | null
+          assignee_name: string
+          assignee_role: Database["public"]["Enums"]["system_role"]
+          attachment_url: string | null
+          comment: string | null
+          completed_at: string | null
+          description: string | null
+          due_date: string
+          id: string
+          instance_count: number
+          is_recurring: boolean
+          original_assignee_id: string | null
+          project_name: string | null
+          recurrence_kind: Database["public"]["Enums"]["recurrence_kind"]
+          reminder_enabled: boolean
+          status: Database["public"]["Enums"]["instance_status"] | null
+          task_id: string
+          task_name: string
+        }[]
+      }
       generate_task_instances: {
         Args: { p_horizon_date?: string; p_task_id: string }
         Returns: number

@@ -12,6 +12,8 @@ import { TableView } from "@/components/dashboard/table-view";
 import { KanbanView } from "@/components/dashboard/kanban-view";
 import { CalendarView } from "@/components/dashboard/calendar-view";
 import { CreateTaskModal } from "@/components/dashboard/create-task-modal";
+import { DatasetControls } from "@/components/dashboard/dataset-controls";
+import type { UserStatus } from "@/lib/dashboard-data";
 
 export default async function DashboardPage({
   searchParams,
@@ -26,6 +28,7 @@ export default async function DashboardPage({
   const filterValue = sp.filterValue ?? "";
   const breakdownMode = (sp.breakdown ?? "project") as BreakdownMode;
   const monthIso = sp.month ?? todayIso().slice(0, 7);
+  const userStatus = (["active", "inactive", "all"].includes(sp.userStatus ?? "") ? sp.userStatus : "active") as UserStatus;
 
   const isManager = appUser.system_role === "reporting_manager";
 
@@ -37,9 +40,10 @@ export default async function DashboardPage({
       filterValue: isManager ? filterValue : "",
       breakdownMode,
       monthIso,
+      userStatus,
       withBreakdown: isManager,
     }),
-    isManager ? getAssignableEmployees(appUser) : Promise.resolve([]),
+    isManager ? getAssignableEmployees(appUser, { includeInactive: true }) : Promise.resolve([]),
     isManager && appUser.org_id ? getOrgProjects(appUser.org_id) : Promise.resolve([]),
   ]);
   const { kpis, uniqueTaskTotal, completionPct, breakdownRows, taskGroups, tableTaskGroups, calendar } =
@@ -54,7 +58,7 @@ export default async function DashboardPage({
           isManager
             ? [
                 { href: "/users", label: "Users" },
-                { href: "/bulk-copy", label: "Bulk Task Copy" },
+                { href: "/task-management", label: "Task Management" },
                 { href: "/reports", label: "Reports" },
               ]
             : [{ href: "/reports", label: "My Reports" }]
@@ -93,7 +97,7 @@ export default async function DashboardPage({
           rows={breakdownRows}
           mode={breakdownMode}
           buildHref={(m) => {
-            const p = new URLSearchParams({ view, filterMode, filterValue, breakdown: m });
+            const p = new URLSearchParams({ view, filterMode, filterValue, breakdown: m, month: monthIso, userStatus });
             return `?${p.toString()}`;
           }}
         />
@@ -101,7 +105,8 @@ export default async function DashboardPage({
 
       <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
         <ViewTabs view={view} />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DatasetControls month={monthIso} userStatus={userStatus} showStatus={isManager} />
           {isManager ? (
             <FilterControls
               filterMode={filterMode}
@@ -112,13 +117,13 @@ export default async function DashboardPage({
           ) : null}
           {isManager ? (
             <Link
-              href="/bulk-upload"
+              href="/task-management?tab=upload"
               className="border border-panel-border bg-panel-bg text-text-body px-3.5 py-2 rounded-md text-[13px] font-semibold whitespace-nowrap"
             >
               Bulk upload
             </Link>
           ) : null}
-          {isManager ? <CreateTaskModal employees={employees} /> : null}
+          {isManager ? <CreateTaskModal employees={employees.filter((e) => e.is_active)} /> : null}
         </div>
       </div>
 

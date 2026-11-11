@@ -80,8 +80,13 @@ export function FilterControls({
         >
           <option value="">Choose employee…</option>
           {employees.map((e) => (
-            <option key={e.id} value={e.id}>
+            <option
+              key={e.id}
+              value={e.id}
+              style={e.is_active === false ? { color: "var(--text-faint)" } : undefined}
+            >
               {e.full_name}
+              {e.is_active === false ? " (inactive)" : ""}
             </option>
           ))}
         </select>

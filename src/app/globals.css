@@ -21,6 +21,9 @@
   --text-sub: #6b6b64;
   --text-faint: #9a9a92;
 
+  --kpi-blue: oklch(0.5 0.18 250);
+  --kpi-red: oklch(0.52 0.21 25);
+  --kpi-green: oklch(0.5 0.15 145);
   --danger: oklch(0.48 0.18 25);
   --danger-soft: oklch(0.94 0.05 25);
   --warn: oklch(0.5 0.15 70);
@@ -44,6 +47,9 @@
 
 :root[data-mode="dark"] {
   color-scheme: dark;
+  --kpi-blue: oklch(0.76 0.13 250);
+  --kpi-red: oklch(0.73 0.17 25);
+  --kpi-green: oklch(0.77 0.16 145);
   /* Dark mode: deep surfaces that carry a hint of the theme colour. */
   --body-bg: oklch(0.19 0.024 var(--accent-h));
   --sidebar-bg: oklch(0.225 0.028 var(--accent-h));
@@ -159,3 +165,7 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .tm-org-letter { animation: none; opacity: 1; }
 }
+
+/* Inactive people in any list: grey text (the Edit/Replace buttons keep their own colour). */
+tr.tm-inactive > td:not(:last-child) { color: var(--text-faint) !important; }
+tr.tm-inactive > td:not(:last-child) * { color: inherit; }

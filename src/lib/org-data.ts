@@ -25,7 +25,8 @@ export type Employee = {
  * they have full tenant control.
  */
 export async function getAssignableEmployees(
-  appUser: AppUser
+  appUser: AppUser,
+  opts: { includeInactive?: boolean } = {}
 ): Promise<Employee[]> {
   const supabase = await createClient();
 
@@ -41,7 +42,7 @@ export async function getAssignableEmployees(
     const projectNames = await getProjectNameMap(projectIds);
 
     return rows
-      .filter((r) => r.is_active)
+      .filter((r) => opts.includeInactive || r.is_active)
       .map((r) => ({
         id: r.id,
         full_name: r.full_name,
@@ -58,15 +59,16 @@ export async function getAssignableEmployees(
 
   // master_admin / platform_owner (platform_owner has no org_id, but this
   // path is only reached for org-scoped roles in practice): full org.
-  const { data, error } = await supabase
+  let query = supabase
     .from("app_users")
     .select(
       "id, full_name, email, employee_code, system_role, project_id, designation_id, is_active, reports_to, project:projects(name)"
     )
     .eq("org_id", appUser.org_id ?? "")
-    .eq("is_active", true)
     .neq("system_role", "master_admin")
     .order("full_name");
+  if (!opts.includeInactive) query = query.eq("is_active", true);
+  const { data, error } = await query;
   if (error) throw error;
 
   return (data ?? []).map((r) => ({

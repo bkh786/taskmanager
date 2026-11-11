@@ -2,7 +2,9 @@ import { getThoughtOfTheDay } from "@/lib/quote";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { requireRole } from "@/lib/auth";
 import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
-import { getOrgProjects, getAssignableEmployees } from "@/lib/org-data";
+import { getOrgProjects, getOrgDesignations, getAssignableEmployees } from "@/lib/org-data";
+import { DatasetControls } from "@/components/dashboard/dataset-controls";
+import type { UserStatus } from "@/lib/dashboard-data";
 import { todayIso } from "@/lib/task-status";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
 import { BreakdownPanel } from "@/components/dashboard/breakdown-panel";
@@ -25,19 +27,22 @@ export default async function OrgDashboardPage({
   const filterValue = sp.filterValue ?? "";
   const breakdownMode = (sp.breakdown ?? "project") as BreakdownMode;
   const monthIso = sp.month ?? todayIso().slice(0, 7);
+  const userStatus = (["active", "inactive", "all"].includes(sp.userStatus ?? "") ? sp.userStatus : "active") as UserStatus;
 
   const quote = await getThoughtOfTheDay();
-  const [data, projects, employees] = await Promise.all([
+  const [data, projects, employees, designations] = await Promise.all([
     loadDashboard(appUser, {
       view,
       filterMode,
       filterValue,
       breakdownMode,
       monthIso,
+      userStatus,
       withBreakdown: true,
     }),
     appUser.org_id ? getOrgProjects(appUser.org_id) : Promise.resolve([]),
-    getAssignableEmployees(appUser),
+    getAssignableEmployees(appUser, { includeInactive: true }),
+    appUser.org_id ? getOrgDesignations(appUser.org_id) : Promise.resolve([]),
   ]);
   const {
     kpis,
@@ -57,6 +62,7 @@ export default async function OrgDashboardPage({
         links={[
           { href: "/users", label: "Users" },
           { href: "/reports", label: "Reports" },
+          { href: "/task-management", label: "Task Management" },
           { href: "/org-settings", label: "Organization Settings" },
         ]}
       />
@@ -93,19 +99,23 @@ export default async function OrgDashboardPage({
         mode={breakdownMode}
         showManager
         buildHref={(m) => {
-          const p = new URLSearchParams({ view, filterMode, filterValue, breakdown: m });
+          const p = new URLSearchParams({ view, filterMode, filterValue, breakdown: m, month: monthIso, userStatus });
           return `?${p.toString()}`;
         }}
       />
 
       <div className="flex items-center justify-between mb-4.5 flex-wrap gap-3">
         <ViewTabs view={view} />
-        <OrgFilterControls
-          filterMode={filterMode}
-          filterValue={filterValue}
-          projects={projects}
-          employees={employees}
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <DatasetControls month={monthIso} userStatus={userStatus} />
+          <OrgFilterControls
+            filterMode={filterMode}
+            filterValue={filterValue}
+            projects={projects}
+            employees={employees}
+            designations={designations}
+          />
+        </div>
       </div>
 
       {view === "table" ? <TableView tasks={tableTaskGroups} /> : null}

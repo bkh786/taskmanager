@@ -9,10 +9,10 @@ export function KpiCards({
 }) {
   const cards = [
     { label: "Total Tasks", value: uniqueTaskTotal, dot: null },
-    { label: "Due Today", value: kpis.today, dot: "oklch(0.45 0.16 250)" },
+    { label: "Due Today", value: kpis.today, dot: "oklch(0.45 0.16 250)", color: "var(--kpi-blue)" },
     { label: "Due This Week", value: kpis.week, dot: "oklch(0.5 0.15 70)" },
-    { label: "Delayed", value: kpis.delayed, dot: "oklch(0.48 0.18 25)" },
-    { label: "Completed", value: kpis.completed, dot: "oklch(0.45 0.13 145)" },
+    { label: "Delayed", value: kpis.delayed, dot: "oklch(0.48 0.18 25)", color: "var(--kpi-red)" },
+    { label: "Completed", value: kpis.completed, dot: "oklch(0.45 0.13 145)", color: "var(--kpi-green)" },
   ];
 
   return (
@@ -33,7 +33,10 @@ export function KpiCards({
               {c.label}
             </div>
           </div>
-          <div className="text-[22px] font-extrabold text-text-main mt-1">
+          <div
+            className="text-[22px] font-extrabold text-text-main mt-1"
+            style={"color" in c && c.color ? { color: c.color } : undefined}
+          >
             {c.value}
           </div>
         </div>

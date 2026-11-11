@@ -39,7 +39,8 @@ export type TaskGroup = {
   instanceCount: number;
 };
 
-export type BreakdownMode = "project" | "employee" | "role" | "manager";
+export type BreakdownMode = "project" | "employee" | "designation" | "manager";
+export type UserStatus = "active" | "inactive" | "all";
 
 export type Kpis = {
   total: number;
@@ -71,18 +72,25 @@ export type DashboardData = {
   calendar: CalendarEntry[];
 };
 
+const ID_PAGE = 1000;
+
 /**
- * Who this viewer may see tasks for, narrowed by the screen's filter. `null`
- * means "everyone their organization's row-level security allows" (org admin,
- * no filter). RLS only isolates by org, so a manager's reporting chain and an
+ * Who this viewer may see tasks for, narrowed by the screen's filter and by
+ * whether to include active, inactive or all employees. `null` means "everyone
+ * their organization's row-level security allows" (org admin, no filter, all
+ * statuses). RLS only isolates by org, so a manager's reporting chain and an
  * employee's own tasks are enforced here, as before.
  */
 export async function resolveAssigneeScope(
   appUser: AppUser,
   filterMode: string,
-  filterValue: string
+  filterValue: string,
+  userStatus: UserStatus = "all"
 ): Promise<string[] | null> {
   const supabase = await createClient();
+  const wantActive = userStatus === "active";
+  const statusOk = (isActive: boolean | null) =>
+    userStatus === "all" ? true : wantActive ? isActive !== false : isActive === false;
 
   if (appUser.system_role === "user") return [appUser.id];
 
@@ -95,37 +103,49 @@ export async function resolveAssigneeScope(
     if (filterMode === "employee" && filterValue) {
       return reportees.some((r) => r.id === filterValue) ? [filterValue] : [];
     }
-    if (filterMode === "project" && filterValue) {
-      return reportees.filter((r) => r.project_id === filterValue).map((r) => r.id);
-    }
-    return reportees.map((r) => r.id);
+    let pool = reportees;
+    if (filterMode === "project" && filterValue) pool = pool.filter((r) => r.project_id === filterValue);
+    if (filterMode === "designation" && filterValue) pool = pool.filter((r) => r.designation_id === filterValue);
+    return pool.filter((r) => statusOk(r.is_active)).map((r) => r.id);
   }
 
   // master_admin: the whole org unless filtered.
-  if (!filterValue) return null;
-  if (filterMode === "employee") return [filterValue];
-  if (filterMode === "project" || filterMode === "role") {
-    let query = supabase.from("app_users").select("id");
-    query =
-      filterMode === "project"
-        ? query.eq("project_id", filterValue)
-        : query.eq("system_role", filterValue as AppUser["system_role"]);
-    const { data, error } = await query;
+  if (filterMode === "employee" && filterValue) return [filterValue];
+  const filtered = (filterMode === "project" || filterMode === "designation") && !!filterValue;
+  if (!filtered && userStatus === "all") return null;
+
+  const ids: string[] = [];
+  for (let from = 0; ; from += ID_PAGE) {
+    let query = supabase.from("app_users").select("id").order("id");
+    if (filtered) {
+      query =
+        filterMode === "project"
+          ? query.eq("project_id", filterValue)
+          : query.eq("designation_id", filterValue);
+    }
+    if (userStatus === "active") query = query.neq("is_active", false);
+    if (userStatus === "inactive") query = query.eq("is_active", false);
+    const { data, error } = await query.range(from, from + ID_PAGE - 1);
     if (error) throw error;
-    return (data ?? []).map((u) => u.id);
+    ids.push(...(data ?? []).map((u) => u.id));
+    if ((data?.length ?? 0) < ID_PAGE) break;
   }
-  return null;
+  return ids;
 }
 
 const PAGE = 1000; // the API returns at most this many rows per response
 
-async function fetchTaskGroups(assigneeIds: string[] | null): Promise<TaskGroup[]> {
+async function fetchTaskGroups(
+  assigneeIds: string[] | null,
+  from: string,
+  to: string
+): Promise<TaskGroup[]> {
   const supabase = await createClient();
   const rows = [];
-  for (let from = 0; ; from += PAGE) {
+  for (let offset = 0; ; offset += PAGE) {
     const { data, error } = await supabase
-      .rpc("dashboard_task_rows", { p_assignee_ids: assigneeIds })
-      .range(from, from + PAGE - 1);
+      .rpc("dashboard_task_rows_window", { p_assignee_ids: assigneeIds, p_from: from, p_to: to })
+      .range(offset, offset + PAGE - 1);
     if (error) throw error;
     rows.push(...(data ?? []));
     if ((data?.length ?? 0) < PAGE) break;
@@ -232,31 +252,34 @@ export async function loadDashboard(
     filterMode: string;
     filterValue: string;
     breakdownMode: BreakdownMode;
+    /** "YYYY-MM": the month the task list, board and calendar show. KPI tiles ignore it. */
     monthIso: string;
+    /** Which employees' tasks the list, board, calendar and breakdown include (default: active). */
+    userStatus: UserStatus;
     withBreakdown: boolean;
   }
 ): Promise<DashboardData> {
-  const assigneeIds = await resolveAssigneeScope(appUser, opts.filterMode, opts.filterValue);
+  // KPI tiles keep counting everyone in scope, as before; everything below
+  // them follows the active/inactive choice.
+  const kpiIds = await resolveAssigneeScope(appUser, opts.filterMode, opts.filterValue, "all");
+  const dataIds =
+    opts.userStatus === "all"
+      ? kpiIds
+      : await resolveAssigneeScope(appUser, opts.filterMode, opts.filterValue, opts.userStatus);
 
-  // A manager with nobody in their chain (or a filter matching nobody): nothing to query.
-  if (assigneeIds && assigneeIds.length === 0) {
-    return {
-      kpis: { total: 0, today: 0, week: 0, delayed: 0, completed: 0 },
-      uniqueTaskTotal: 0,
-      completionPct: 0,
-      breakdownRows: [],
-      taskGroups: [],
-      tableTaskGroups: [],
-      calendar: [],
-    };
-  }
+  const emptyKpis = { kpis: { total: 0, today: 0, week: 0, delayed: 0, completed: 0 }, uniqueTaskTotal: 0 };
+  const noData = !!dataIds && dataIds.length === 0;
+
+  const [year, month] = opts.monthIso.split("-").map(Number);
+  const from = `${opts.monthIso}-01`;
+  const to = `${opts.monthIso}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
 
   const wantsGroups = opts.view === "table" || opts.view === "kanban";
   const [summary, taskGroups, breakdownRows, calendar] = await Promise.all([
-    fetchKpis(assigneeIds),
-    wantsGroups ? fetchTaskGroups(assigneeIds) : Promise.resolve([] as TaskGroup[]),
-    opts.withBreakdown ? fetchBreakdown(assigneeIds, opts.breakdownMode) : Promise.resolve([] as BreakdownRow[]),
-    opts.view === "calendar" ? fetchCalendar(assigneeIds, opts.monthIso) : Promise.resolve([] as CalendarEntry[]),
+    kpiIds && kpiIds.length === 0 ? Promise.resolve(emptyKpis) : fetchKpis(kpiIds),
+    wantsGroups && !noData ? fetchTaskGroups(dataIds, from, to) : Promise.resolve([] as TaskGroup[]),
+    opts.withBreakdown && !noData ? fetchBreakdown(dataIds, opts.breakdownMode) : Promise.resolve([] as BreakdownRow[]),
+    opts.view === "calendar" && !noData ? fetchCalendar(dataIds, opts.monthIso) : Promise.resolve([] as CalendarEntry[]),
   ]);
 
   // Table view: only open work -- delayed and pending -- never the completed history.

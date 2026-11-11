@@ -2,21 +2,18 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
-const ROLE_OPTIONS: { value: string; label: string }[] = [
-  { value: "reporting_manager", label: "Reporting Manager" },
-  { value: "user", label: "Employee" },
-];
-
 export function OrgFilterControls({
   filterMode,
   filterValue,
   projects,
   employees,
+  designations,
 }: {
   filterMode: string;
   filterValue: string;
   projects: { id: string; name: string }[];
-  employees: { id: string; full_name: string }[];
+  employees: { id: string; full_name: string; is_active?: boolean }[];
+  designations: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -40,7 +37,7 @@ export function OrgFilterControls({
         <option value="all">All tasks</option>
         <option value="employee">By employee</option>
         <option value="project">By project</option>
-        <option value="role">By role</option>
+        <option value="designation">By designation</option>
       </select>
       {filterMode === "employee" ? (
         <select
@@ -50,8 +47,13 @@ export function OrgFilterControls({
         >
           <option value="">Choose employee…</option>
           {employees.map((e) => (
-            <option key={e.id} value={e.id}>
+            <option
+              key={e.id}
+              value={e.id}
+              style={e.is_active === false ? { color: "var(--text-faint)" } : undefined}
+            >
               {e.full_name}
+              {e.is_active === false ? " (inactive)" : ""}
             </option>
           ))}
         </select>
@@ -70,16 +72,16 @@ export function OrgFilterControls({
           ))}
         </select>
       ) : null}
-      {filterMode === "role" ? (
+      {filterMode === "designation" ? (
         <select
           value={filterValue}
           onChange={(e) => setParam("filterValue", e.target.value)}
           className="px-2.5 py-1.5 border border-panel-border rounded-md text-[13px] text-text-main bg-panel-bg"
         >
-          <option value="">Choose role…</option>
-          {ROLE_OPTIONS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
+          <option value="">Choose designation…</option>
+          {designations.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
             </option>
           ))}
         </select>

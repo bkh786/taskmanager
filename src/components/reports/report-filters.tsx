@@ -210,7 +210,7 @@ export function ReportFilters({
       return next;
     });
 
-  const { projectOpts, designationOpts, roleOpts, assignerOpts } = computeOptions(options, f);
+  const { projectOpts, designationOpts, assignerOpts } = computeOptions(options, f);
 
   function apply() {
     const p = new URLSearchParams();
@@ -275,7 +275,6 @@ export function ReportFilters({
       <MultiSelect label="Months" options={monthOptions} selected={f.months} onChange={(v) => set("months", v)} />
       <MultiSelect label="Projects" options={projectOpts} selected={f.projects} onChange={(v) => set("projects", v)} />
       <MultiSelect label="Designations" options={designationOpts} selected={f.designations} onChange={(v) => set("designations", v)} />
-      <MultiSelect label="Roles" options={roleOpts} selected={f.roles} onChange={(v) => set("roles", v)} />
       <MultiSelect label="Task status" options={STATUS_OPTIONS} selected={f.statuses} onChange={(v) => set("statuses", v)} />
       <MultiSelect label="Assigned by" options={assignerOpts} selected={f.assignedBy} onChange={(v) => set("assignedBy", v)} />
 

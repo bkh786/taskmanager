@@ -17,8 +17,17 @@ const WEEKDAYS = [
   { value: 6, label: "Sat" },
 ] as const;
 
-export function CreateTaskModal({ employees }: { employees: Employee[] }) {
+export function CreateTaskModal({
+  employees,
+  inline = false,
+}: {
+  employees: Employee[];
+  /** Render the form directly on the page (Task Management tab) instead of as a pop-up. */
+  inline?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const [created, setCreated] = useState(false);
   const [recurring, setRecurring] = useState(false);
   const [kind, setKind] = useState<"daily" | "weekly" | "monthly">("daily");
   const [excludedWeekdays, setExcludedWeekdays] = useState<number[]>([]);
@@ -26,14 +35,21 @@ export function CreateTaskModal({ employees }: { employees: Employee[] }) {
   const [state, formAction, pending] = useActionState(createTask, initialState);
   const submittedOnce = useRef(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- reacting to the server action finishing */
   useEffect(() => {
     if (submittedOnce.current && !pending && state.error === null) {
-      setOpen(false);
       submittedOnce.current = false;
+      if (inline) {
+        setCreated(true);
+        setFormKey((k) => k + 1); // fresh, empty form for the next task
+      } else {
+        setOpen(false);
+      }
     }
-  }, [pending, state]);
+  }, [pending, state, inline]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  if (!open) {
+  if (!open && !inline) {
     return (
       <button
         onClick={() => setOpen(true)}
@@ -46,20 +62,33 @@ export function CreateTaskModal({ employees }: { employees: Employee[] }) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap shrink-0"
-      >
-        + New Task
-      </button>
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="w-[480px] max-w-[calc(100vw-24px)] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-7 py-6 shadow-xl">
+      {inline ? null : (
+        <button
+          onClick={() => setOpen(true)}
+          className="border-none bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md text-[13px] font-semibold cursor-pointer whitespace-nowrap shrink-0"
+        >
+          + New Task
+        </button>
+      )}
+      <div className={inline ? "" : "fixed inset-0 bg-black/40 flex items-center justify-center z-50"}>
+        <div
+          className={
+            inline
+              ? "w-full max-w-[640px] bg-panel-bg border border-panel-border rounded-xl px-7 py-6"
+              : "w-[480px] max-w-[calc(100vw-24px)] max-h-[88vh] overflow-y-auto bg-panel-bg rounded-xl px-7 py-6 shadow-xl"
+          }
+        >
           <div className="text-[16.5px] font-bold text-text-main mb-4.5">
             New Task
           </div>
+          {created ? (
+            <div className="text-[12.5px] text-success mb-3">Task created. You can add another below.</div>
+          ) : null}
           <form
+            key={formKey}
             action={(fd) => {
               submittedOnce.current = true;
+              setCreated(false);
               formAction(fd);
             }}
             className="flex flex-col gap-3.5"
@@ -278,13 +307,15 @@ export function CreateTaskModal({ employees }: { employees: Employee[] }) {
             ) : null}
 
             <div className="flex justify-end gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="border border-panel-border bg-panel-bg text-text-body px-4 py-2.5 rounded-md text-[13.5px] cursor-pointer"
-              >
-                Cancel
-              </button>
+              {inline ? null : (
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="border border-panel-border bg-panel-bg text-text-body px-4 py-2.5 rounded-md text-[13.5px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={pending}

@@ -1,14 +1,6 @@
 "use client";
 
 import type { Employee } from "@/lib/org-data";
-import type { AppUser } from "@/lib/auth";
-
-const ROLE_LABELS: Record<AppUser["system_role"], string> = {
-  platform_owner: "Platform Owner",
-  master_admin: "Org Admin",
-  reporting_manager: "Reporting Manager",
-  user: "Employee",
-};
 
 export function ExportUsersButton({ users }: { users: Employee[] }) {
   async function download() {
@@ -18,7 +10,6 @@ export function ExportUsersButton({ users }: { users: Employee[] }) {
       Name: u.full_name,
       "Employee Code": u.employee_code,
       Email: u.email,
-      Role: ROLE_LABELS[u.system_role],
       Project: u.project_name ?? "",
       Designation: u.designation_name ?? "",
       "Reporting Manager": u.manager_name ?? "",

@@ -27,14 +27,17 @@ export default async function AppLayout({
   // The organization's own logo and name for the navigation (platform owners
   // have no organization, so they get the plain Task Manager mark).
   let org = { name: "Task Manager", logoUrl: null as string | null };
+  let designationName: string | null = null;
   if (appUser.org_id) {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("organizations")
-      .select("name, logo_url")
-      .eq("id", appUser.org_id)
-      .maybeSingle();
+    const [{ data }, { data: dsg }] = await Promise.all([
+      supabase.from("organizations").select("name, logo_url").eq("id", appUser.org_id).maybeSingle(),
+      appUser.designation_id
+        ? supabase.from("designations").select("name").eq("id", appUser.designation_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
     if (data) org = { name: data.name, logoUrl: data.logo_url };
+    designationName = dsg?.name ?? null;
   }
 
   const chatMe =
@@ -53,7 +56,7 @@ export default async function AppLayout({
           <ProfileMenu
             name={appUser.full_name}
             email={appUser.email}
-            roleLabel={ROLE_LABELS[appUser.system_role]}
+            roleLabel={designationName ?? ROLE_LABELS[appUser.system_role]}
           />
         </div>
         {children}

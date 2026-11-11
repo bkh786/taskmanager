@@ -15,7 +15,7 @@ export function BreakdownPanel({
   const tabs: { id: BreakdownMode; label: string }[] = [
     { id: "project", label: "Project" },
     { id: "employee", label: "Employee" },
-    { id: "role", label: "Role" },
+    { id: "designation", label: "Designation" },
     ...(showManager ? [{ id: "manager" as const, label: "Reporting Manager" }] : []),
   ];
 
