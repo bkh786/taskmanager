@@ -1,4 +1,5 @@
 import { getThoughtOfTheDay } from "@/lib/quote";
+import { navFor } from "@/lib/nav";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { requireRole } from "@/lib/auth";
 import { getPlatformStats } from "@/lib/tenant-data";
@@ -26,11 +27,7 @@ export default async function PlatformDashboardPage() {
       <WelcomeBanner
         firstName={appUser.full_name.trim().split(/\s+/)[0]}
         quote={quote}
-        links={[
-          { href: "/tenants", label: "Tenants" },
-          { href: "/platform-reports", label: "Reports" },
-          { href: "/bulk-upload-users", label: "Bulk Upload Users" },
-        ]}
+        links={navFor(appUser.system_role).filter((i) => !/dashboard$/.test(i.href))}
       />
       <div className="text-[22px] font-bold text-text-main mb-0.5">Platform Dashboard</div>
       <div className="text-[13.5px] text-text-sub mb-5.5">

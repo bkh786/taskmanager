@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { requireRole, type AppUser } from "@/lib/auth";
-import { sendOrgEvent } from "@/lib/email";
+import { sendOrgEvent, createPasswordLink } from "@/lib/email";
 import { ROLE_LABEL } from "@/lib/email-events";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -103,6 +103,7 @@ export async function createOrReplaceUser(
       vars: {
         user_name: fullName,
         user_email: email,
+        password,
         employee_code: employeeCode,
         role: ROLE_LABEL[role] ?? role,
       },
@@ -433,4 +434,24 @@ async function createsReportingLoop(
     cursor = res.data?.reports_to ?? null;
   }
   return false;
+}
+
+/** Platform owner: overwrite a user's password. */
+export async function adminSetPassword(userId: string, password: string): Promise<{ error: string | null }> {
+  await requireRole(["platform_owner"]);
+  if (!userId) return { error: "User not found." };
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  const { error } = await createAdminClient().auth.admin.updateUserById(userId, { password });
+  return { error: error?.message ?? null };
+}
+
+/** Platform owner: a one-time link the user can open to choose their own password. */
+export async function adminGenerateResetLink(
+  userId: string
+): Promise<{ error: string | null; link: string | null }> {
+  await requireRole(["platform_owner"]);
+  const { data } = await createAdminClient().from("app_users").select("email").eq("id", userId).maybeSingle();
+  if (!data) return { error: "User not found.", link: null };
+  const link = await createPasswordLink(data.email);
+  return link ? { error: null, link } : { error: "Could not generate a link.", link: null };
 }

@@ -1,4 +1,5 @@
 import { getThoughtOfTheDay } from "@/lib/quote";
+import { navFor } from "@/lib/nav";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
@@ -54,15 +55,7 @@ export default async function DashboardPage({
       <WelcomeBanner
         firstName={appUser.full_name.trim().split(/\s+/)[0]}
         quote={quote}
-        links={
-          isManager
-            ? [
-                { href: "/users", label: "Users" },
-                { href: "/task-management", label: "Task Management" },
-                { href: "/reports", label: "Reports" },
-              ]
-            : [{ href: "/reports", label: "My Reports" }]
-        }
+        links={navFor(appUser.system_role).filter((i) => !/dashboard$/.test(i.href))}
       />
       <div className="flex items-start justify-between flex-wrap gap-4 mb-5.5">
         <div>

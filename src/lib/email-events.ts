@@ -37,12 +37,13 @@ export const EMAIL_EVENTS: EmailEventDef[] = [
       { key: "employee_code", description: "Their employee code" },
       { key: "role", description: "Their role" },
       { key: "login_url", description: "Link to the sign-in page" },
+      { key: "password", description: "The initial password set for them" },
       { key: "set_password_link", description: "One-time link to choose their own password" },
       ORG,
     ],
     defaultSubject: "Welcome to {{org_name}} Task Manager",
     defaultBody:
-      "Hi {{user_name}},\n\nAn account has been created for you on {{org_name}}'s Task Manager.\n\nSign in at {{login_url}} with this email address ({{user_email}}).\n\nTo choose your own password, use this link (valid for one hour):\n{{set_password_link}}\n\nIf the link has expired, use \"Forgot password?\" on the sign-in page.",
+      "Hi {{user_name}},\n\nAn account has been created for you on {{org_name}}'s Task Manager.\n\nSign in at {{login_url}}\nUser name: {{user_email}}\nPassword: {{password}}\n\nPlease change your password after signing in (profile menu, top right). If you'd rather choose your own now, use this link (valid for one hour):\n{{set_password_link}}",
   },
   {
     id: "password_reset",

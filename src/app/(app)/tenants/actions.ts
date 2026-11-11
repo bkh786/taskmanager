@@ -27,8 +27,8 @@ export async function createTenant(
   const orgName = String(formData.get("orgName") ?? "").trim();
   const adminEmail = String(formData.get("adminEmail") ?? "").trim().toLowerCase();
   const adminName = String(formData.get("adminName") ?? "").trim();
-  const planId = String(formData.get("planId") ?? "") || null;
-  const cycleInput = String(formData.get("billingCycle") ?? "");
+  const [planIdRaw, cycleInput = ""] = String(formData.get("planCycle") ?? "").split("|");
+  const planId = planIdRaw || null;
   const billingStart = String(formData.get("billingStartDate") ?? "") || null;
   const maxUsersRaw = String(formData.get("maxUsers") ?? "");
   const maxUsers = maxUsersRaw ? Math.max(1, Number(maxUsersRaw)) : null;
@@ -47,7 +47,7 @@ export async function createTenant(
   const supabase = await createClient();
   const admin = createAdminClient();
   const { data: planRow } = planId ? await admin.from("plans").select("*").eq("id", planId).maybeSingle() : { data: null };
-  const cycle = isBillingCycle(cycleInput) ? cycleInput : (planRow?.billing_cycle ?? null);
+  const cycle = planRow && isBillingCycle(cycleInput) ? cycleInput : null;
 
   let slug = slugify(orgName);
   const { data: existing } = await supabase

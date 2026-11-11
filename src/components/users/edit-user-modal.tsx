@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { updateUser } from "@/app/(app)/users/actions";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { updateUser, adminSetPassword, adminGenerateResetLink } from "@/app/(app)/users/actions";
 import type { Employee, DesignationItem } from "@/lib/org-data";
 import type { AppUser } from "@/lib/auth";
 
@@ -21,6 +21,7 @@ export function EditUserModal({
   managers,
   employees,
   canEditRole,
+  canResetPassword = false,
   allowedRoles,
   orgId,
   onClose,
@@ -31,6 +32,7 @@ export function EditUserModal({
   managers: Employee[];
   employees: Employee[];
   canEditRole: boolean;
+  canResetPassword?: boolean;
   allowedRoles: AppUser["system_role"][];
   orgId?: string;
   onClose: () => void;
@@ -227,6 +229,8 @@ export function EditUserModal({
             Active
           </label>
 
+          {canResetPassword ? <PasswordTools userId={target.id} /> : null}
+
           {state.error ? (
             <div className="text-[12.5px] text-danger">{state.error}</div>
           ) : null}
@@ -249,6 +253,73 @@ export function EditUserModal({
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+/** Platform owner only: set a new password directly, or generate a reset link. */
+function PasswordTools({ userId }: { userId: string }) {
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [link, setLink] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <div className="border border-panel-border rounded-lg p-3.5 bg-table-head-bg flex flex-col gap-2.5">
+      <div className="text-xs font-bold text-text-sub uppercase tracking-wide">Password</div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          autoComplete="off"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="New password (min 8 characters)"
+          className="flex-1 min-w-0 px-2.5 py-2 border border-panel-border rounded-md text-[13px] bg-panel-bg text-text-main"
+        />
+        <button
+          type="button"
+          disabled={pending || password.length < 8}
+          onClick={() =>
+            start(async () => {
+              const r = await adminSetPassword(userId, password);
+              setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: "Password updated. The old password no longer works." });
+              if (!r.error) setPassword("");
+            })
+          }
+          className="border-none bg-accent text-white px-3 py-2 rounded-md text-[12.5px] font-bold cursor-pointer disabled:opacity-50 whitespace-nowrap"
+        >
+          Set password
+        </button>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            start(async () => {
+              const r = await adminGenerateResetLink(userId);
+              setLink(r.link);
+              setMsg(r.error ? { ok: false, text: r.error } : { ok: true, text: "Reset link generated (valid for one hour)." });
+            })
+          }
+          className="border border-panel-border bg-panel-bg text-text-body px-3 py-1.5 rounded-md text-[12.5px] font-semibold cursor-pointer disabled:opacity-50"
+        >
+          Generate reset link
+        </button>
+        {link ? (
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(link).then(() => setMsg({ ok: true, text: "Link copied." }))}
+            className="border border-panel-border bg-panel-bg text-text-body px-3 py-1.5 rounded-md text-[12.5px] cursor-pointer"
+          >
+            Copy link
+          </button>
+        ) : null}
+      </div>
+      {link ? (
+        <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className="w-full px-2.5 py-1.5 border border-panel-border rounded-md text-[11.5px] bg-panel-bg text-text-sub" />
+      ) : null}
+      {msg ? <div className={`text-[12px] ${msg.ok ? "text-success" : "text-danger"}`}>{msg.text}</div> : null}
     </div>
   );
 }

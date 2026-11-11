@@ -73,16 +73,70 @@ export function formatMoney(amount: number | string | null | undefined, currency
   }
 }
 
-/** Amount for one cycle: price (or the tenant's override) plus seats beyond the plan's allowance. */
+export type Discounts = { quarterly: number; semi_annual: number; annual: number };
+export const DEFAULT_DISCOUNTS: Discounts = { quarterly: 8, semi_annual: 12, annual: 20 };
+
+export function cycleMonths(cycle: string | null | undefined): number {
+  return BILLING_CYCLES.find((c) => c.value === cycle)?.months ?? 0;
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Price of a plan for one billing cycle. Monthly and one-time prices are
+ * entered; the longer cycles are monthly x months x (1 - discount%).
+ * Null when the plan has no price for that cycle (e.g. no one-time price).
+ */
+export function planCyclePrice(
+  plan: { price: number | string; one_time_price?: number | string | null },
+  cycle: string | null | undefined,
+  discounts: Discounts
+): number | null {
+  const monthly = Number(plan.price);
+  switch (cycle) {
+    case "monthly":
+      return monthly;
+    case "one_time":
+      return plan.one_time_price == null ? null : Number(plan.one_time_price);
+    case "quarterly":
+      return round2(monthly * 3 * (1 - discounts.quarterly / 100));
+    case "semi_annual":
+      return round2(monthly * 6 * (1 - discounts.semi_annual / 100));
+    case "annual":
+      return round2(monthly * 12 * (1 - discounts.annual / 100));
+    default:
+      return null;
+  }
+}
+
+/** Plan + cycle combinations a tenant can be put on ("Starter - Monthly", ...). */
+export function planChoices<P extends { id: string; name: string; price: number | string; one_time_price?: number | string | null; currency: string }>(
+  plans: P[],
+  discounts: Discounts
+) {
+  const out: { value: string; label: string; plan: P; cycle: BillingCycle; price: number }[] = [];
+  for (const plan of plans) {
+    for (const c of BILLING_CYCLES) {
+      const price = planCyclePrice(plan, c.value, discounts);
+      if (price === null) continue;
+      out.push({ value: `${plan.id}|${c.value}`, label: `${plan.name} - ${c.label}`, plan, cycle: c.value, price });
+    }
+  }
+  return out;
+}
+
+/** Amount for one cycle: the cycle price (or the tenant's override) plus seats beyond the plan's allowance, charged per month of the cycle. */
 export function cycleAmount(opts: {
-  price: number;
+  cyclePrice: number;
   priceOverride?: number | null;
   includedUsers?: number | null;
   extraUserPrice?: number | null;
   maxUsers?: number | null;
+  cycle?: string | null;
 }): number {
-  const base = opts.priceOverride ?? opts.price;
+  const base = opts.priceOverride ?? opts.cyclePrice;
   const extraSeats =
     opts.includedUsers != null && opts.maxUsers != null ? Math.max(0, opts.maxUsers - opts.includedUsers) : 0;
-  return Math.round((Number(base) + extraSeats * Number(opts.extraUserPrice ?? 0)) * 100) / 100;
+  const months = Math.max(1, cycleMonths(opts.cycle));
+  return round2(Number(base) + extraSeats * Number(opts.extraUserPrice ?? 0) * months);
 }

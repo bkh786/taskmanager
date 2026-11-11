@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { generateInvoiceNow, saveTenantBilling, saveTenantManagement, type FormState } from "@/app/(app)/platform/actions";
-import { BILLING_CYCLES, PAYMENT_STATUSES, cycleLabel, formatMoney, paymentLabel } from "@/lib/billing-shared";
+import { PAYMENT_STATUSES, cycleLabel, formatMoney, paymentLabel, planChoices, type Discounts } from "@/lib/billing-shared";
 import { fmtDate } from "@/lib/task-status";
 import type { Tables } from "@/types/database.types";
 
@@ -13,17 +13,16 @@ const label = "text-xs font-semibold text-text-sub block mb-1.5";
 const card = "bg-panel-bg border border-panel-border rounded-[10px] p-5.5";
 const primary = "border-none bg-accent hover:bg-accent-hover text-white px-5 py-2.5 rounded-md text-[13.5px] font-bold cursor-pointer disabled:opacity-60";
 
-export function TenantBillingForm({ org, plans }: { org: Tables<"organizations">; plans: Tables<"plans">[] }) {
+export function TenantBillingForm({ org, plans, discounts }: { org: Tables<"organizations">; plans: Tables<"plans">[]; discounts: Discounts }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(saveTenantBilling, initial);
   const [, startSave] = useTransition();
-  const [planId, setPlanId] = useState(org.plan_id ?? "");
-  const [cycle, setCycle] = useState(org.billing_cycle ?? "");
+  const choices = planChoices(plans.filter((p) => p.is_active || p.id === org.plan_id), discounts);
+  const [choice, setChoice] = useState(org.plan_id ? `${org.plan_id}|${org.billing_cycle ?? "monthly"}` : "");
   const [gen, startGen] = useTransition();
   const [genMsg, setGenMsg] = useState<string | null>(null);
 
-  const plan = plans.find((p) => p.id === planId);
-  const effectiveCycle = cycle || plan?.billing_cycle || "";
+  const picked = choices.find((c) => c.value === choice);
 
   return (
     <div className="flex flex-col gap-5">
@@ -49,36 +48,20 @@ export function TenantBillingForm({ org, plans }: { org: Tables<"organizations">
         <div className="text-[14.5px] font-bold text-text-main">Plan &amp; billing cycle</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={label}>Pricing plan</label>
-            <select
-              name="planId"
-              value={planId}
-              onChange={(e) => {
-                setPlanId(e.target.value);
-                setCycle("");
-              }}
-              className={input}
-            >
+            <label className={label}>Pricing plan &amp; billing cycle</label>
+            <select name="planCycle" value={choice} onChange={(e) => setChoice(e.target.value)} className={input}>
               <option value="">No plan</option>
-              {plans
-                .filter((p) => p.is_active || p.id === org.plan_id)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {formatMoney(p.price, p.currency)} / {cycleLabel(p.billing_cycle).toLowerCase()}
-                  </option>
-                ))}
-            </select>
-          </div>
-          <div>
-            <label className={label}>Billing cycle</label>
-            <select name="billingCycle" value={effectiveCycle} onChange={(e) => setCycle(e.target.value)} className={input}>
-              <option value="">—</option>
-              {BILLING_CYCLES.map((c) => (
+              {choices.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
                 </option>
               ))}
             </select>
+            {picked ? (
+              <div className="text-[11px] text-text-faint mt-1">
+                {formatMoney(picked.price, picked.plan.currency)} per {cycleLabel(picked.cycle).toLowerCase()} cycle
+              </div>
+            ) : null}
           </div>
           <div>
             <label className={label}>Billing cycle start date</label>
@@ -89,7 +72,7 @@ export function TenantBillingForm({ org, plans }: { org: Tables<"organizations">
           </div>
           <div>
             <label className={label}>Custom price per cycle (optional)</label>
-            <input type="number" name="priceOverride" min={0} step="0.01" defaultValue={org.price_override ?? ""} placeholder={plan ? String(plan.price) : ""} className={input} />
+            <input type="number" name="priceOverride" min={0} step="0.01" defaultValue={org.price_override ?? ""} placeholder={picked ? String(picked.price) : ""} className={input} />
             <div className="text-[11px] text-text-faint mt-1">Leave blank to bill the plan price.</div>
           </div>
           <div>

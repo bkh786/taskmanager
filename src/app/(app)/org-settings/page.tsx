@@ -32,7 +32,7 @@ export default async function OrgSettingsPage({
   const templates = tab === "email" ? await getSavedTemplates(orgId) : {};
 
   return (
-    <div className="max-w-[920px]">
+    <div>
       <div className="text-[22px] font-bold text-text-main mb-0.5">Organization Settings</div>
       <div className="text-[13.5px] text-text-sub mb-4">
         Company profile, project variables, email templates and SMTP

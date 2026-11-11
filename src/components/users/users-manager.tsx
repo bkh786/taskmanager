@@ -323,6 +323,7 @@ export function UsersManager({
           managers={managers}
           employees={users}
           canEditRole={showReportsTo}
+          canResetPassword={!!orgId}
           allowedRoles={allowedRoles}
           orgId={orgId}
           onClose={() => setModal({ kind: "none" })}

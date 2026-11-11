@@ -3,46 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
+import { navFor } from "@/lib/nav";
 import { useChatOptional } from "@/components/chat/chat-provider";
-
-export function navFor(role: AppUser["system_role"]) {
-  switch (role) {
-    case "platform_owner":
-      return [
-        { href: "/platform-dashboard", label: "Platform Dashboard" },
-        { href: "/tenants", label: "Tenants" },
-        { href: "/plan-master", label: "Plan Master" },
-        { href: "/invoices", label: "Invoices" },
-        { href: "/platform-settings", label: "Platform Settings" },
-        { href: "/platform-reports", label: "Reports" },
-        { href: "/bulk-upload-users", label: "Bulk Upload Users" },
-      ];
-    case "master_admin":
-      return [
-        { href: "/org-dashboard", label: "Dashboard" },
-        { href: "/org-settings", label: "Organization Settings" },
-        { href: "/users", label: "User Management" },
-        { href: "/task-management", label: "Task Management" },
-        { href: "/reports", label: "Reports" },
-        { href: "/team-chat", label: "Team Chat" },
-      ];
-    case "reporting_manager":
-      return [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/users", label: "User Management" },
-        { href: "/task-management", label: "Task Management" },
-        { href: "/reports", label: "Reports" },
-        { href: "/team-chat", label: "Team Chat" },
-      ];
-    case "user":
-      return [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/reports", label: "Reports" },
-        { href: "/team-chat", label: "Team Chat" },
-      ];
-  }
-}
-
 
 const ICON_PATHS: Record<string, string[]> = {
   plans: ["M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z", "M7.5 7.5h.01"],

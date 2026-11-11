@@ -1,4 +1,5 @@
 import { getThoughtOfTheDay } from "@/lib/quote";
+import { navFor } from "@/lib/nav";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { requireRole } from "@/lib/auth";
 import { loadDashboard, type BreakdownMode } from "@/lib/dashboard-data";
@@ -59,12 +60,7 @@ export default async function OrgDashboardPage({
       <WelcomeBanner
         firstName={appUser.full_name.trim().split(/\s+/)[0]}
         quote={quote}
-        links={[
-          { href: "/users", label: "Users" },
-          { href: "/reports", label: "Reports" },
-          { href: "/task-management", label: "Task Management" },
-          { href: "/org-settings", label: "Organization Settings" },
-        ]}
+        links={navFor(appUser.system_role).filter((i) => !/dashboard$/.test(i.href))}
       />
       <div className="flex items-start justify-between flex-wrap gap-4 mb-5.5">
         <div>

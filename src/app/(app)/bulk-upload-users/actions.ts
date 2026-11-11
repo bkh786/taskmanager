@@ -79,7 +79,7 @@ export async function bulkCreateUsers(
 
   const skipped: BulkUserUploadState["skipped"] = [];
   let created = 0;
-  const welcomeQueue: { email: string; fullName: string; employeeCode: string; role: string }[] = [];
+  const welcomeQueue: { email: string; fullName: string; employeeCode: string; role: string; password: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 2; // account for header row, 1-indexed
@@ -181,7 +181,7 @@ export async function bulkCreateUsers(
     }
 
     emailToId.set(email, createdAuthUser.user.id);
-    welcomeQueue.push({ email, fullName, employeeCode, role: roleRaw });
+    welcomeQueue.push({ email, fullName, employeeCode, role: roleRaw, password });
     created++;
   }
 
@@ -199,6 +199,7 @@ export async function bulkCreateUsers(
               vars: {
                 user_name: u.fullName,
                 user_email: u.email,
+                password: u.password,
                 employee_code: u.employeeCode,
                 role: ROLE_LABEL[u.role] ?? u.role,
               },

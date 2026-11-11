@@ -106,7 +106,7 @@ export default async function TaskDetailPage({
   }
 
   return (
-    <div className="max-w-[920px]">
+    <div>
       <Link href="/dashboard" className="text-[13px] text-text-sub mb-4 inline-block">
         ← Back to Dashboard
       </Link>

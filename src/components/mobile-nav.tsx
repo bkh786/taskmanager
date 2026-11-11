@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navFor, NavIcon } from "@/components/sidebar";
+import { NavIcon } from "@/components/sidebar";
+import { navFor } from "@/lib/nav";
 import type { AppUser } from "@/lib/auth";
 
 /** Phone/tablet navigation: a menu button that opens a slide-in drawer. */

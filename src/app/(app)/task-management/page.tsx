@@ -29,7 +29,7 @@ export default async function TaskManagementPage({
   const tab: TabKey = TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : "create";
 
   return (
-    <div className="max-w-[1100px]">
+    <div>
       <div className="text-[22px] font-bold text-text-main mb-0.5">Task Management</div>
       <div className="text-[13.5px] text-text-sub mb-4">
         Create, copy, upload and remove tasks for your team

@@ -24,21 +24,22 @@ export async function savePlan(_prev: FormState, formData: FormData): Promise<Fo
   await requireRole(["platform_owner"]);
   const id = String(formData.get("id") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const cycle = String(formData.get("billingCycle") ?? "");
   const price = Number(formData.get("price") ?? 0);
+  const oneTimeRaw = String(formData.get("oneTimePrice") ?? "").trim();
+  const oneTime = oneTimeRaw ? Number(oneTimeRaw) : null;
   const included = String(formData.get("includedUsers") ?? "").trim();
   const extra = Number(formData.get("extraUserPrice") || 0);
   if (!name) return fail("Plan name is required.");
-  if (!isBillingCycle(cycle)) return fail("Pick a billing cycle.");
-  if (!Number.isFinite(price) || price < 0) return fail("Enter a valid price.");
+  if (!Number.isFinite(price) || price < 0) return fail("Enter a valid monthly price.");
+  if (oneTime !== null && (!Number.isFinite(oneTime) || oneTime < 0)) return fail("Enter a valid one-time price.");
   if (!Number.isFinite(extra) || extra < 0) return fail("Enter a valid price per extra user.");
 
   const row = {
     name,
     description: String(formData.get("description") ?? "").trim() || null,
     price,
+    one_time_price: oneTime,
     currency: String(formData.get("currency") ?? "INR").trim().toUpperCase().slice(0, 3) || "INR",
-    billing_cycle: cycle,
     included_users: included ? Math.max(1, Math.floor(Number(included))) : null,
     extra_user_price: extra,
     is_active: formData.get("isActive") === "on",
@@ -47,7 +48,26 @@ export async function savePlan(_prev: FormState, formData: FormData): Promise<Fo
   const { error } = id ? await admin.from("plans").update(row).eq("id", id) : await admin.from("plans").insert(row);
   if (error) return fail(error.code === "23505" ? "A plan with that name already exists." : error.message);
   revalidatePath("/plan-master");
-  revalidatePath("/tenants");
+  revalidatePath("/tenants", "layout");
+  return ok;
+}
+
+/** Platform-wide discounts applied to the quarterly, semi-annual and annual prices. */
+export async function saveDiscounts(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireRole(["platform_owner"]);
+  const read = (k: string) => Number(formData.get(k));
+  const q = read("quarterly");
+  const h = read("semi_annual");
+  const y = read("annual");
+  for (const v of [q, h, y]) {
+    if (!Number.isFinite(v) || v < 0 || v > 100) return fail("Discounts must be between 0 and 100.");
+  }
+  const { error } = await createAdminClient()
+    .from("billing_settings")
+    .upsert({ id: 1, discount_quarterly: q, discount_semi_annual: h, discount_annual: y, updated_at: new Date().toISOString() });
+  if (error) return fail(error.message);
+  revalidatePath("/plan-master");
+  revalidatePath("/tenants", "layout");
   return ok;
 }
 
@@ -144,8 +164,8 @@ export async function savePlatformTemplates(_prev: FormState, formData: FormData
 export async function saveTenantBilling(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole(["platform_owner"]);
   const orgId = String(formData.get("orgId") ?? "");
-  const planId = String(formData.get("planId") ?? "") || null;
-  const cycleInput = String(formData.get("billingCycle") ?? "");
+  const [planIdRaw, cycleInput = ""] = String(formData.get("planCycle") ?? "").split("|");
+  const planId = planIdRaw || null;
   const startDate = String(formData.get("billingStartDate") ?? "") || null;
   const overrideRaw = String(formData.get("priceOverride") ?? "").trim();
   const billingEmail = String(formData.get("billingEmail") ?? "").trim().toLowerCase() || null;
@@ -165,7 +185,7 @@ export async function saveTenantBilling(_prev: FormState, formData: FormData): P
   const { data: plan } = planId ? await admin.from("plans").select("*").eq("id", planId).maybeSingle() : { data: null };
   if (planId && !plan) return fail("Plan not found.");
 
-  const cycle = isBillingCycle(cycleInput) ? cycleInput : (plan?.billing_cycle ?? null);
+  const cycle = planId && isBillingCycle(cycleInput) ? cycleInput : null;
   const update: TablesUpdate<"organizations"> = {
     plan_id: planId,
     plan: plan?.name ?? before.plan,

@@ -65,7 +65,7 @@ export default async function PlatformReportsPage({
       appUrl={appUrl} showOrganization
       heading={
         <div>
-          <div className="text-[22px] font-bold text-text-main">Platform Reports</div>
+          <div className="text-[22px] font-bold text-text-main">Platform Task Reports</div>
           <div className="text-[13.5px] text-text-sub mt-1">
             Task data across every tenant.
             {applied

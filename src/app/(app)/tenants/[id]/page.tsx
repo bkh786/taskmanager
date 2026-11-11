@@ -12,6 +12,7 @@ import { GeneralSection, EmailSection, SmtpSection } from "@/components/org-sett
 import { getSavedTemplates, toSettingsOrg } from "@/lib/org-settings-data";
 import { UsersManager } from "@/components/users/users-manager";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadDiscounts } from "@/lib/billing";
 import { TenantBillingForm, TenantManagementForm } from "@/components/platform/tenant-billing-tab";
 import { InvoicesTable } from "@/components/platform/invoices-table";
 
@@ -41,7 +42,7 @@ export default async function TenantManagePage({
   if (!org) notFound();
 
   return (
-    <div className="max-w-[1000px]">
+    <div>
       <Link href="/tenants" className="text-[13px] text-text-sub mb-4 inline-block">
         ← Back to Tenants
       </Link>
@@ -102,13 +103,14 @@ async function TenantUsers({ orgId, org }: { orgId: string; org: NonNullable<Awa
 
 async function BillingTab({ orgId, org }: { orgId: string; org: NonNullable<Awaited<ReturnType<typeof getTenantById>>> }) {
   const admin = createAdminClient();
-  const [{ data: plans }, { data: invoices }] = await Promise.all([
+  const [{ data: plans }, { data: invoices }, discounts] = await Promise.all([
     admin.from("plans").select("*").order("price"),
     admin.from("invoices").select("*").eq("org_id", orgId).order("period_start", { ascending: false }),
+    loadDiscounts(),
   ]);
   return (
     <div className="flex flex-col gap-6">
-      <TenantBillingForm org={org} plans={plans ?? []} />
+      <TenantBillingForm org={org} plans={plans ?? []} discounts={discounts} />
       <div>
         <div className="text-[14.5px] font-bold text-text-main mb-3">Invoices &amp; payments</div>
         <InvoicesTable invoices={invoices ?? []} />

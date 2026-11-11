@@ -65,7 +65,7 @@ export default async function ReportsPage({
       appUrl={appUrl}
       heading={
         <div>
-          <div className="text-[22px] font-bold text-text-main">Reports</div>
+          <div className="text-[22px] font-bold text-text-main">Task Reports</div>
           <div className="text-[13.5px] text-text-sub mt-1">
             {appUser.system_role === "user"
               ? "Your own tasks — one row per instance"

@@ -298,6 +298,12 @@ export type Database = {
           },
         ]
       }
+      billing_settings: {
+        Row: { id: number; discount_quarterly: number; discount_semi_annual: number; discount_annual: number; updated_at: string }
+        Insert: { id?: number; discount_quarterly?: number; discount_semi_annual?: number; discount_annual?: number; updated_at?: string }
+        Update: { id?: number; discount_quarterly?: number; discount_semi_annual?: number; discount_annual?: number; updated_at?: string }
+        Relationships: []
+      }
       plans: {
         Row: {
           id: string
@@ -310,6 +316,7 @@ export type Database = {
           extra_user_price: number
           is_active: boolean
           created_at: string
+          one_time_price: number | null
         }
         Insert: {
           id?: string
@@ -322,6 +329,7 @@ export type Database = {
           extra_user_price?: number
           is_active?: boolean
           created_at?: string
+          one_time_price?: number | null
         }
         Update: {
           id?: string
@@ -334,6 +342,7 @@ export type Database = {
           extra_user_price?: number
           is_active?: boolean
           created_at?: string
+          one_time_price?: number | null
         }
         Relationships: []
       }

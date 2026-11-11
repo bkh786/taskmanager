@@ -33,7 +33,7 @@ export default async function PlatformSettingsPage({
   }
 
   return (
-    <div className="max-w-[920px]">
+    <div>
       <div className="text-[22px] font-bold text-text-main mb-0.5">Platform Settings</div>
       <div className="text-[13.5px] text-text-sub mb-4">
         Email from the platform to tenants: invoices, billing reminders, plan changes and offers

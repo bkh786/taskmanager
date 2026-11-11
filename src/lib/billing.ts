@@ -10,8 +10,19 @@ import {
   formatMoney,
   isBillingCycle,
   nextCycleStart,
+  planCyclePrice,
+  DEFAULT_DISCOUNTS,
+  type Discounts,
 } from "@/lib/billing-shared";
 import type { Tables } from "@/types/database.types";
+
+/** Platform-wide discounts for the longer billing cycles. */
+export async function loadDiscounts(): Promise<Discounts> {
+  const { data } = await createAdminClient().from("billing_settings").select("*").eq("id", 1).maybeSingle();
+  return data
+    ? { quarterly: Number(data.discount_quarterly), semi_annual: Number(data.discount_semi_annual), annual: Number(data.discount_annual) }
+    : DEFAULT_DISCOUNTS;
+}
 
 type Org = Tables<"organizations">;
 type Invoice = Tables<"invoices">;
@@ -90,8 +101,12 @@ export async function generateInvoice(
 
   const cycle = isBillingCycle(org.billing_cycle) ? org.billing_cycle : plan.billing_cycle;
   const next = nextCycleStart(periodStart, cycle);
+  const discounts = await loadDiscounts();
+  const cyclePrice = planCyclePrice(plan, cycle, discounts);
+  if (cyclePrice === null) return { ok: false, error: `${plan.name} has no ${cycleLabel(cycle)} price.` };
   const amount = cycleAmount({
-    price: Number(plan.price),
+    cyclePrice,
+    cycle,
     priceOverride: org.price_override,
     includedUsers: plan.included_users,
     extraUserPrice: Number(plan.extra_user_price),
