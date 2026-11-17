@@ -10,6 +10,9 @@ import { ChatDock } from "@/components/chat/chat-dock";
 import { ChatProvider } from "@/components/chat/chat-provider";
 import { CallProvider } from "@/components/chat/call-provider";
 import { CallOverlay } from "@/components/chat/call-overlay";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { CriticalBanner } from "@/components/notifications/critical-banner";
 
 const ROLE_LABELS = {
   platform_owner: "Platform Owner",
@@ -50,24 +53,28 @@ export default async function AppLayout({
   return (
     <ChatProvider me={chatMe}>
     <CallProvider>
+    <NotificationProvider userId={chatMe ? appUser.id : null}>
     <div className="flex flex-1 min-h-0 bg-body-bg">
       <Sidebar appUser={appUser} />
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 pt-4 sm:pt-8 pb-15">
         <div className="flex items-center gap-3 mb-4.5">
           <MobileNav role={appUser.system_role} />
           <OrgBrandBar name={org.name} logoUrl={org.logoUrl} />
+          {chatMe ? <NotificationBell /> : null}
           <ProfileMenu
             name={appUser.full_name}
             email={appUser.email}
             roleLabel={designationName ?? ROLE_LABELS[appUser.system_role]}
           />
         </div>
+        {chatMe ? <CriticalBanner /> : null}
         {children}
       </main>
       <IdleLogout />
       {chatMe ? <ChatDock /> : null}
       {chatMe ? <CallOverlay /> : null}
     </div>
+    </NotificationProvider>
     </CallProvider>
     </ChatProvider>
   );

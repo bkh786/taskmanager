@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Public_Sans } from "next/font/google";
 import "./globals.css";
 import { BrandFooter } from "@/components/brand/brand-footer";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 
 const publicSans = Public_Sans({
   variable: "--font-public-sans",
@@ -12,6 +13,15 @@ const publicSans = Public_Sans({
 export const metadata: Metadata = {
   title: "Task Manager",
   description: "Multi-tenant task management workspace",
+  applicationName: "Task Manager",
+  appleWebApp: { capable: true, title: "Task Manager", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A84FF",
+  width: "device-width",
+  initialScale: 1,
 };
 
 const THEME_INIT_SCRIPT = `
@@ -42,6 +52,7 @@ export default function RootLayout({
       <body className="h-dvh flex flex-col">
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">{children}</div>
         <BrandFooter />
+        <PwaRegister />
       </body>
     </html>
   );

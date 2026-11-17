@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { signOutIdle } from "@/app/(app)/actions";
+import { releasePushOnSignOut } from "@/components/pwa/pwa-state";
 
 const LIMIT_MS = 60 * 60 * 1000; // 60 minutes without activity
 const KEY = "tm-last-activity";
@@ -42,6 +43,7 @@ export function IdleLogout() {
       if (signingOut) return;
       if (Date.now() - read() >= LIMIT_MS) {
         signingOut = true;
+        void releasePushOnSignOut();
         void signOutIdle();
       }
     };

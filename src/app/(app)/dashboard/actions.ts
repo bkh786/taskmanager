@@ -8,6 +8,7 @@ import { appBaseUrl, sendOrgEvent } from "@/lib/email";
 import { parseEmailList } from "@/lib/email-events";
 import { fmtDate } from "@/lib/task-status";
 import { getAssignableEmployees } from "@/lib/org-data";
+import { notifyTaskAssigned, notifyTaskCompleted } from "@/lib/notify";
 import {
   B2_PREFIX,
   MAX_ATTACHMENT_BYTES,
@@ -108,6 +109,16 @@ export async function createTask(
         .limit(1)
         .maybeSingle(),
     ]);
+    after(() =>
+      notifyTaskAssigned({
+        orgId,
+        instanceId: firstInstance?.id ?? null,
+        taskId: task.id,
+        taskName,
+        assigneeId,
+        assignerId: appUser.id,
+      })
+    );
     if (assignee) {
       const schedule = isRecurring
         ? `${recurrenceKind[0].toUpperCase()}${recurrenceKind.slice(1)}${recurrenceInterval > 1 ? ` (every ${recurrenceInterval})` : ""}`
@@ -202,6 +213,10 @@ export async function completeTaskInstance(
     .eq("id", instanceId);
 
   if (error) return { error: error.message };
+
+  // In-app + push update for the people the organization's rules name.
+  const completedOrg = appUser.org_id;
+  after(() => notifyTaskCompleted({ orgId: completedOrg, instanceId, completedBy: appUser.id }));
 
   // Tell the task's creator (unless they switched that off for this task, or
   // they are the one completing it) -- in the background so the form returns at once.

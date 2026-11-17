@@ -1,5 +1,6 @@
 "use server";
 
+import { ensureDefaultRules } from "@/lib/notify";
 import { revalidatePath } from "next/cache";
 import { isBillingCycle, PAYMENT_STATUSES } from "@/lib/billing-shared";
 import { requireRole } from "@/lib/auth";
@@ -82,6 +83,7 @@ export async function createTenant(
   if (projectName) {
     await supabase.from("projects").insert({ org_id: org.id, name: projectName });
   }
+  await ensureDefaultRules(org.id);
 
   // Admin API invite -- sends Supabase's own invite email (magic link to set
   // a password), independent of the org's not-yet-configured SMTP settings.

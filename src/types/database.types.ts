@@ -240,6 +240,213 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          id: string
+          org_id: string | null
+          user_id: string
+          level: string
+          kind: string
+          title: string
+          body: string | null
+          link: string | null
+          source: string
+          ref_id: string | null
+          dedupe_key: string
+          created_at: string
+          read_at: string | null
+          acknowledged_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id?: string | null
+          user_id: string
+          level?: string
+          kind?: string
+          title: string
+          body?: string | null
+          link?: string | null
+          source?: string
+          ref_id?: string | null
+          dedupe_key?: string
+          created_at?: string
+          read_at?: string | null
+          acknowledged_at?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string | null
+          user_id?: string
+          level?: string
+          kind?: string
+          title?: string
+          body?: string | null
+          link?: string | null
+          source?: string
+          ref_id?: string | null
+          dedupe_key?: string
+          created_at?: string
+          read_at?: string | null
+          acknowledged_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_rules: {
+        Row: {
+          id: string
+          org_id: string
+          kind: string
+          name: string
+          enabled: boolean
+          level: string
+          after_days: number
+          to_assignee: boolean
+          to_creator: boolean
+          to_l1: boolean
+          to_l2: boolean
+          to_admins: boolean
+          send_push: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          kind: string
+          name?: string
+          enabled?: boolean
+          level?: string
+          after_days?: number
+          to_assignee?: boolean
+          to_creator?: boolean
+          to_l1?: boolean
+          to_l2?: boolean
+          to_admins?: boolean
+          send_push?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          kind?: string
+          name?: string
+          enabled?: boolean
+          level?: string
+          after_days?: number
+          to_assignee?: boolean
+          to_creator?: boolean
+          to_l1?: boolean
+          to_l2?: boolean
+          to_admins?: boolean
+          send_push?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          id: string
+          org_id: string | null
+          created_by: string | null
+          level: string
+          title: string
+          body: string | null
+          link: string | null
+          audience: Json
+          send_push: boolean
+          publish_at: string | null
+          status: string
+          sent_at: string | null
+          recipient_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id?: string | null
+          created_by?: string | null
+          level?: string
+          title: string
+          body?: string | null
+          link?: string | null
+          audience?: Json
+          send_push?: boolean
+          publish_at?: string | null
+          status?: string
+          sent_at?: string | null
+          recipient_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string | null
+          created_by?: string | null
+          level?: string
+          title?: string
+          body?: string | null
+          link?: string | null
+          audience?: Json
+          send_push?: boolean
+          publish_at?: string | null
+          status?: string
+          sent_at?: string | null
+          recipient_count?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          org_id: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent: string | null
+          created_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          org_id?: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent?: string | null
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          org_id?: string | null
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          user_agent?: string | null
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Relationships: []
+      }
+      notification_prefs: {
+        Row: {
+          user_id: string
+          push_info: boolean
+          push_critical: boolean
+        }
+        Insert: {
+          user_id: string
+          push_info?: boolean
+          push_critical?: boolean
+        }
+        Update: {
+          user_id?: string
+          push_info?: boolean
+          push_critical?: boolean
+        }
+        Relationships: []
+      }
       notification_log: {
         Row: {
           id: string

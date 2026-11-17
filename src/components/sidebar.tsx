@@ -7,6 +7,7 @@ import { navFor } from "@/lib/nav";
 import { useChatOptional } from "@/components/chat/chat-provider";
 
 const ICON_PATHS: Record<string, string[]> = {
+  notify: ["M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9", "M13.7 21a2 2 0 01-3.4 0"],
   plans: ["M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z", "M7.5 7.5h.01"],
   invoices: ["M6 2h12v20l-3-2-3 2-3-2-3 2z", "M9 7h6", "M9 11h6", "M9 15h4"],
   mail: ["M3 5h18v14H3z", "M3 7l9 6 9-6"],
@@ -32,6 +33,7 @@ const ICON_PATHS: Record<string, string[]> = {
 };
 
 function iconKeyFor(href: string): string {
+  if (href.includes("notification")) return "notify";
   if (href.includes("team-chat")) return "chat";
   if (href.includes("plan-master")) return "plans";
   if (href.includes("invoices")) return "invoices";

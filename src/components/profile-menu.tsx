@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "@/app/(app)/actions";
 import { ThemeControls } from "@/components/theme-controls";
+import { releasePushOnSignOut } from "@/components/pwa/pwa-state";
 
 /** First and last name initials ("Sucheth Ganapathy Rao" -> "SR"). */
 function initialsOf(name: string) {
@@ -71,7 +72,7 @@ export function ProfileMenu({
           >
             Update password
           </Link>
-          <form action={signOut}>
+          <form action={signOut} onSubmit={() => void releasePushOnSignOut()}>
             <button
               type="submit"
               className="w-full text-left px-4 py-2.5 text-[13px] text-danger hover:bg-table-head-bg bg-transparent border-none cursor-pointer"
