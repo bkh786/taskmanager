@@ -13,6 +13,7 @@ import { CallOverlay } from "@/components/chat/call-overlay";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { CriticalBanner } from "@/components/notifications/critical-banner";
+import { InstallBanner } from "@/components/pwa/install-banner";
 
 const ROLE_LABELS = {
   platform_owner: "Platform Owner",
@@ -67,6 +68,7 @@ export default async function AppLayout({
             roleLabel={designationName ?? ROLE_LABELS[appUser.system_role]}
           />
         </div>
+        <InstallBanner />
         {chatMe ? <CriticalBanner /> : null}
         {children}
       </main>

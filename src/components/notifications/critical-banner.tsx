@@ -14,27 +14,29 @@ export function CriticalBanner() {
       {top ? (
         <div
           role="alert"
-          className="mb-3 flex items-center gap-3 flex-wrap rounded-lg px-4 py-2.5 text-white"
+          className="mb-3 flex items-center gap-x-3 gap-y-2 flex-wrap rounded-lg px-3.5 sm:px-4 py-2.5 text-white"
           style={{ background: "var(--danger)" }}
         >
           <span aria-hidden="true" className="text-[16px]">⚠</span>
-          <div className="min-w-0 flex-1 text-[13px]">
+          <div className="min-w-0 flex-1 basis-[200px] text-[13px] line-clamp-3 sm:line-clamp-none">
             <span className="font-bold">{top.title}</span>
             {top.body ? <span className="opacity-90"> — {top.body}</span> : null}
             {openCritical.length > 1 ? <span className="ml-2 font-semibold">(+{openCritical.length - 1} more)</span> : null}
           </div>
-          {top.link ? (
-            <Link href={top.link} onClick={() => markRead([top.id])} className="text-white underline text-[12.5px] font-semibold">
-              View
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => acknowledge(top.id)}
-            className="border border-white/60 bg-transparent text-white px-3 py-1 rounded-md text-[12px] font-semibold cursor-pointer"
-          >
-            Acknowledge
-          </button>
+          <div className="flex items-center gap-3 ml-auto">
+            {top.link ? (
+              <Link href={top.link} onClick={() => markRead([top.id])} className="text-white underline text-[12.5px] font-semibold">
+                View
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => acknowledge(top.id)}
+              className="border border-white/60 bg-transparent text-white px-3 py-1 rounded-md text-[12px] font-semibold cursor-pointer"
+            >
+              Acknowledge
+            </button>
+          </div>
         </div>
       ) : null}
       {showToast ? (

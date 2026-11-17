@@ -65,7 +65,10 @@ export function startPwa() {
   started = true;
 
   const ua = navigator.userAgent;
-  const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  // iPadOS reports itself as a Mac; an Android user agent is never iOS.
+  const ios =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1 && !/Android/.test(ua));
   const standalone =
     window.matchMedia?.("(display-mode: standalone)").matches ||
     (navigator as unknown as { standalone?: boolean }).standalone === true;

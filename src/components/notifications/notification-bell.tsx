@@ -94,14 +94,14 @@ export function NotificationBell() {
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-12 z-50 w-[min(390px,calc(100vw-24px))] bg-panel-bg border border-panel-border rounded-xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-x-3 top-[68px] z-50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-[390px] bg-panel-bg border border-panel-border rounded-xl shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-panel-border">
             <div className="text-[14px] font-bold text-text-main">Notifications</div>
             <button type="button" onClick={markAllRead} className="border-none bg-transparent text-accent text-[12px] font-semibold cursor-pointer">
               Mark updates read
             </button>
           </div>
-          <div className="max-h-[min(480px,70dvh)] overflow-y-auto">
+          <div className="max-h-[calc(100dvh-270px)] sm:max-h-[min(480px,70dvh)] overflow-y-auto">
             {critical.length > 0 ? (
               <div>
                 <div className="px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-danger bg-table-head-bg">Critical alerts</div>
