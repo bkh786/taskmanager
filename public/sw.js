@@ -44,7 +44,8 @@ self.addEventListener("push", (event) => {
         badge: "/icons/badge-96.png",
         tag: data.tag || undefined,
         renotify: !!data.tag,
-        requireInteraction: critical,
+        requireInteraction: critical || data.sticky === true,
+        vibrate: Array.isArray(data.vibrate) ? data.vibrate : undefined,
         data: { url: data.url || "/notifications" },
       });
     })()

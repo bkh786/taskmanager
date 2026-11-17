@@ -14,6 +14,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useChatOptional } from "./chat-provider";
 import { pageInFront, showSystemNotification, startRingtone, unlockAudio } from "@/lib/alerts";
+import { isPushActive } from "@/components/pwa/pwa-state";
 
 export type CallKind = "voice" | "video";
 export type CallPhase = "idle" | "outgoing" | "incoming" | "connecting" | "active";
@@ -389,6 +390,13 @@ function CallProviderInner({ children }: { children: ReactNode }) {
           throw new Error(/Too many calls/i.test(error?.message ?? "") ? "Too many calls — try again in a minute." : "Couldn't place the call.");
         }
         s.callId = data.id;
+        // Ring the other person's devices too (the server does this once, for our own call).
+        void fetch("/api/push/call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callId: data.id }),
+          keepalive: true,
+        }).catch(() => undefined);
         await openSignal(data.id);
         makePeer();
         s.stopRing = startRingtone("outgoing");
@@ -445,7 +453,7 @@ function CallProviderInner({ children }: { children: ReactNode }) {
       setCall({ ...IDLE, phase: "incoming", peerId: row.caller_id, kind });
       s.stopRing = startRingtone("incoming");
       s.ringTimer = setTimeout(() => teardown(null), RING_MS);
-      if (!pageInFront()) {
+      if (!pageInFront() && !isPushActive()) {
         showSystemNotification(
           `${nameOf(row.caller_id)} is calling`,
           kind === "video" ? "Incoming video call" : "Incoming voice call",

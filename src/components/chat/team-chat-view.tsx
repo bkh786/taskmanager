@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useChat } from "./chat-provider";
 import { AlertsPrompt, ConversationView, Dot, PeopleList } from "./chat-ui";
 
@@ -13,7 +14,8 @@ const FILTERS = [
 /** Full-page chat: people list on the left, the open conversation on the right. */
 export function TeamChatView() {
   const { ready, people, statusOf, myStatus, totalUnread, setFocus } = useChat();
-  const [peerId, setPeerId] = useState<string | null>(null);
+  const withParam = useSearchParams().get("with");
+  const [peerId, setPeerId] = useState<string | null>(withParam);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [search, setSearch] = useState("");
 

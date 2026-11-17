@@ -99,6 +99,65 @@ export async function sendPush(rows: Created[]): Promise<{ sent: number; failed:
   return { sent, failed };
 }
 
+export type DirectPush = {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  /** Stays on screen until dismissed (calls ring, so they use a short life instead). */
+  sticky?: boolean;
+  /** Seconds the push service may hold it for a sleeping device. */
+  ttl?: number;
+  vibrate?: number[];
+  kind: "chat" | "call";
+};
+
+/**
+ * Pushes one chat message or call alert to a person's devices (not stored in their
+ * notification list). Honors their "chat and calls" switch. Returns how many devices were tried.
+ */
+export async function pushDirect(userId: string, p: DirectPush): Promise<number> {
+  if (!configurePush()) return 0;
+  try {
+    const admin = createAdminClient();
+    const [{ data: subs }, { data: prefs }] = await Promise.all([
+      admin.from("push_subscriptions").select("*").eq("user_id", userId),
+      admin.from("notification_prefs").select("push_chat").eq("user_id", userId).maybeSingle(),
+    ]);
+    if (prefs && prefs.push_chat === false) return 0;
+    const list = subs ?? [];
+    const gone: string[] = [];
+    await Promise.all(
+      list.map(async (sub) => {
+        try {
+          await sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            JSON.stringify({
+              title: p.title,
+              body: p.body,
+              url: p.url,
+              tag: p.tag,
+              level: "info",
+              sticky: !!p.sticky,
+              vibrate: p.vibrate,
+              kind: p.kind,
+            }),
+            { TTL: p.ttl ?? 3600, urgency: p.kind === "call" ? "high" : "normal" }
+          );
+        } catch (e) {
+          const code = (e as { statusCode?: number }).statusCode;
+          if (code === 404 || code === 410) gone.push(sub.endpoint);
+        }
+      })
+    );
+    if (gone.length > 0) await admin.from("push_subscriptions").delete().in("endpoint", gone);
+    return list.length;
+  } catch (e) {
+    console.error("pushDirect failed:", e);
+    return 0;
+  }
+}
+
 // ------------------------------------------------------------------ creating notifications
 /** Stores notifications (once per person per event) and pushes the new ones. Never throws. */
 export async function createNotifications(

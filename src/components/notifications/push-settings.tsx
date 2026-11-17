@@ -7,14 +7,14 @@ import { disablePush, enablePush, promptInstall, usePwa } from "@/components/pwa
 /** This device's alert settings: install the app, push on/off, what to push, and a test. */
 export function PushSettings({ userId }: { userId: string }) {
   const pwa = usePwa();
-  const [prefs, setPrefs] = useState({ push_info: true, push_critical: true });
+  const [prefs, setPrefs] = useState({ push_info: true, push_critical: true, push_chat: true });
   const [msg, setMsg] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
     void (async () => {
-      const { data } = await supabase.from("notification_prefs").select("push_info, push_critical").eq("user_id", userId).maybeSingle();
+      const { data } = await supabase.from("notification_prefs").select("push_info, push_critical, push_chat").eq("user_id", userId).maybeSingle();
       if (data) setPrefs(data);
     })();
   }, [userId]);
@@ -110,6 +110,10 @@ export function PushSettings({ userId }: { userId: string }) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={prefs.push_info} onChange={(e) => void savePref({ push_info: e.target.checked })} />
                 General updates (completed tasks, announcements)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={prefs.push_chat} onChange={(e) => void savePref({ push_chat: e.target.checked })} />
+                Chat messages and incoming calls
               </label>
             </div>
           ) : null}

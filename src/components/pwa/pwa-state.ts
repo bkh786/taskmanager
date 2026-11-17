@@ -202,6 +202,11 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+/** True when this device is registered for push (so a push, not the open tab, raises system alerts). */
+export function isPushActive(): boolean {
+  return state.subscribed && state.permission === "granted";
+}
+
 export function usePwa(): PwaState {
   return useSyncExternalStore(subscribe, () => state, () => INITIAL);
 }

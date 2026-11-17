@@ -13,6 +13,7 @@ import {
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { pageInFront, playChime, showSystemNotification, unlockAudio } from "@/lib/alerts";
+import { isPushActive } from "@/components/pwa/pwa-state";
 
 export type Status = "available" | "away" | "offline";
 export type Person = { id: string; full_name: string; email: string };
@@ -178,8 +179,10 @@ function ChatProviderInner({
             // Away from the page: a system notification (the computer plays its own tone).
             // Looking at the page: a short chime. Either way, once.
             const who = peopleRef.current.find((p) => p.id === m.sender_id)?.full_name ?? "New message";
+            // With push on, the push shows the system alert; the open tab only chimes.
             const shown =
               !pageInFront() &&
+              !isPushActive() &&
               showSystemNotification(who, m.body.length > 120 ? `${m.body.slice(0, 117)}…` : m.body, {
                 tag: `chat-${m.sender_id}`,
               });
@@ -471,6 +474,13 @@ function ChatProviderInner({
         next[(data as ChatMsg).id] = data as ChatMsg;
         return next;
       });
+      // Tell the recipient's devices (the server pushes it once, only for our own message).
+      void fetch("/api/push/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: (data as ChatMsg).id }),
+        keepalive: true,
+      }).catch(() => undefined);
       return true;
     },
     [supabase, me.id, me.orgId]

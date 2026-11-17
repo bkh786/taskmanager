@@ -122,6 +122,7 @@ export type Database = {
           created_at: string
           answered_at: string | null
           ended_at: string | null
+          pushed_at: string | null
         }
         Insert: {
           id?: string
@@ -138,6 +139,7 @@ export type Database = {
           status?: string
           answered_at?: string | null
           ended_at?: string | null
+          pushed_at?: string | null
         }
         Relationships: []
       }
@@ -153,6 +155,7 @@ export type Database = {
           recipient_id: string
           reply_to_id: string | null
           sender_id: string
+          pushed_at: string | null
         }
         Insert: {
           body: string
@@ -169,6 +172,7 @@ export type Database = {
         Update: {
           read_at?: string | null
           delivered_at?: string | null
+                  pushed_at?: string | null
         }
         Relationships: []
       }
@@ -434,16 +438,19 @@ export type Database = {
           user_id: string
           push_info: boolean
           push_critical: boolean
+          push_chat: boolean
         }
         Insert: {
           user_id: string
           push_info?: boolean
           push_critical?: boolean
+          push_chat?: boolean
         }
         Update: {
           user_id?: string
           push_info?: boolean
           push_critical?: boolean
+          push_chat?: boolean
         }
         Relationships: []
       }
