@@ -127,7 +127,7 @@ export function NotificationBell() {
               </button>
             </div>
           ) : null}
-          <Link href="/notifications" onClick={() => setOpen(false)} className="block text-center px-3.5 py-2.5 border-t border-panel-border text-[12.5px] font-semibold text-accent">
+          <Link prefetch={false} href="/notifications" onClick={() => setOpen(false)} className="block text-center px-3.5 py-2.5 border-t border-panel-border text-[12.5px] font-semibold text-accent">
             View all notifications
           </Link>
         </div>

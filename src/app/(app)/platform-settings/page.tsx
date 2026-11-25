@@ -40,7 +40,7 @@ export default async function PlatformSettingsPage({
       </div>
       <div className="flex gap-1 border-b border-panel-border mb-5 overflow-x-auto">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.key}
             href={`/platform-settings?tab=${t.key}`}
             className="px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap -mb-px border-b-2"

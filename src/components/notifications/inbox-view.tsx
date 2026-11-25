@@ -70,7 +70,7 @@ export function InboxView() {
                 {n.body ? <div className="text-[12.5px] text-text-sub mt-0.5">{n.body}</div> : null}
                 <div className="flex gap-3 mt-1.5 text-[12px] font-semibold">
                   {n.link ? (
-                    <Link href={n.link} onClick={() => markRead([n.id])} className="text-accent">
+                    <Link prefetch={false} href={n.link} onClick={() => markRead([n.id])} className="text-accent">
                       Open
                     </Link>
                   ) : null}

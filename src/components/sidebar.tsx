@@ -94,7 +94,7 @@ export function Sidebar({ appUser }: { appUser: AppUser }) {
           const active =
             pathname === item.href || pathname.startsWith(item.href + "/");
           return (
-            <Link
+            <Link prefetch={false}
               key={item.href}
               href={item.href}
               title={item.label}

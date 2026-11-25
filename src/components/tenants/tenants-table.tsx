@@ -114,7 +114,7 @@ export function TenantsTable({ tenants }: { tenants: TenantRow[] }) {
                     {t.created_at ? fmtDate(t.created_at) : "—"}
                   </td>
                   <td className={`${td} text-right`}>
-                    <Link
+                    <Link prefetch={false}
                       href={`/tenants/${t.id}`}
                       className="border border-panel-border bg-panel-bg text-text-body px-2.5 py-1 rounded-md text-xs cursor-pointer"
                     >

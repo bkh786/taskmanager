@@ -17,7 +17,10 @@ async function handle(request: Request) {
   }
   // Optional ?org=<id> limits a run to one organization (handy for checking a single tenant).
   const org = new URL(request.url).searchParams.get("org") ?? undefined;
-  return NextResponse.json(await runAlerts({ orgId: org }));
+  // ?only=announcements (cheap, only when something is scheduled) or ?only=overdue (a few times a day).
+  const onlyParam = new URL(request.url).searchParams.get("only");
+  const only = onlyParam === "overdue" || onlyParam === "announcements" ? onlyParam : undefined;
+  return NextResponse.json(await runAlerts({ orgId: org, only }));
 }
 
 export const GET = handle;

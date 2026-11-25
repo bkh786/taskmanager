@@ -48,7 +48,7 @@ function ConfirmInner() {
       ) : (
         <div className="flex flex-col gap-3">
           <div className="text-[13px] text-danger">This link is invalid or has expired.</div>
-          <Link href="/forgot-password" className="text-[13px] font-semibold text-accent">
+          <Link prefetch={false} href="/forgot-password" className="text-[13px] font-semibold text-accent">
             Send me a new link
           </Link>
         </div>

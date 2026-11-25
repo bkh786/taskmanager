@@ -43,7 +43,7 @@ export default async function TenantManagePage({
 
   return (
     <div>
-      <Link href="/tenants" className="text-[13px] text-text-sub mb-4 inline-block">
+      <Link prefetch={false} href="/tenants" className="text-[13px] text-text-sub mb-4 inline-block">
         ← Back to Tenants
       </Link>
       <div className="text-[22px] font-bold text-text-main mb-0.5">{org.name}</div>
@@ -53,7 +53,7 @@ export default async function TenantManagePage({
 
       <div className="flex gap-1 border-b border-panel-border mb-5 overflow-x-auto">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.key}
             href={`/tenants/${orgId}?tab=${t.key}`}
             className="px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap -mb-px border-b-2"

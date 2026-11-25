@@ -31,7 +31,7 @@ export function KanbanView({ tasks }: { tasks: TaskGroup[] }) {
               <span className="text-[11px] text-text-faint">{items.length}</span>
             </div>
             {items.map((t) => (
-              <Link
+              <Link prefetch={false}
                 key={t.taskId}
                 href={`/tasks/${t.representative.id}`}
                 className="block bg-panel-bg border border-panel-border rounded-lg px-3 py-2.5 mb-2"

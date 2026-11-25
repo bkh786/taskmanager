@@ -67,7 +67,7 @@ export function CalendarView({
                     {(byDay.get(cell.iso) ?? []).slice(0, 4).map((t) => {
                       const meta = BUCKET_META[bucketOf(t)];
                       return (
-                        <Link
+                        <Link prefetch={false}
                           key={t.id}
                           href={`/tasks/${t.id}`}
                           className="block text-[10.5px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap overflow-hidden text-ellipsis"

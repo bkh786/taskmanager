@@ -25,7 +25,7 @@ export function CriticalBanner() {
           </div>
           <div className="flex items-center gap-3 ml-auto">
             {top.link ? (
-              <Link href={top.link} onClick={() => markRead([top.id])} className="text-white underline text-[12.5px] font-semibold">
+              <Link prefetch={false} href={top.link} onClick={() => markRead([top.id])} className="text-white underline text-[12.5px] font-semibold">
                 View
               </Link>
             ) : null}
@@ -45,7 +45,7 @@ export function CriticalBanner() {
             <div className="text-[13px] font-bold text-text-main">{toast.title}</div>
             {toast.body ? <div className="text-[12px] text-text-sub mt-0.5 line-clamp-2">{toast.body}</div> : null}
             {toast.link ? (
-              <Link href={toast.link} onClick={() => { markRead([toast.id]); dismissToast(); }} className="text-[12px] font-semibold text-accent mt-1 inline-block">
+              <Link prefetch={false} href={toast.link} onClick={() => { markRead([toast.id]); dismissToast(); }} className="text-[12px] font-semibold text-accent mt-1 inline-block">
                 Open
               </Link>
             ) : null}

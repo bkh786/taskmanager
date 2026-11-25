@@ -109,7 +109,7 @@ export default async function DashboardPage({
             />
           ) : null}
           {isManager ? (
-            <Link
+            <Link prefetch={false}
               href="/task-management?tab=upload"
               className="border border-panel-border bg-panel-bg text-text-body px-3.5 py-2 rounded-md text-[13px] font-semibold whitespace-nowrap"
             >

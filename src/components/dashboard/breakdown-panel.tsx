@@ -25,7 +25,7 @@ export function BreakdownPanel({
         <div className="text-[14.5px] font-bold text-text-main">Breakdown</div>
         <div className="flex bg-chip-bg rounded-lg p-[3px] gap-0.5 max-w-full overflow-x-auto">
           {tabs.map((t) => (
-            <Link
+            <Link prefetch={false}
               key={t.id}
               href={buildHref(t.id)}
               className="border-none px-3 py-1.5 rounded-md text-[12.5px] font-semibold whitespace-nowrap"

@@ -57,7 +57,7 @@ export function LoginForm() {
           />
         </div>
         <div className="text-right -mt-1.5">
-          <Link href="/forgot-password" className="text-[12.5px] font-semibold text-accent">
+          <Link prefetch={false} href="/forgot-password" className="text-[12.5px] font-semibold text-accent">
             Forgot password?
           </Link>
         </div>

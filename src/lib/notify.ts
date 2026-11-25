@@ -351,7 +351,8 @@ async function runOverdueForOrg(admin: Admin, org: { id: string; timezone: strin
   const rules = await rulesFor(admin, org.id, "task_overdue");
   if (rules.length === 0) return 0;
   const today = todayIn(org.timezone);
-  const people = await loadPeople(admin, org.id);
+  // Loaded only when something is actually overdue: most runs, for most organizations, find nothing.
+  let peopleCache: Map<string, Person> | null = null;
   let total = 0;
   for (const rule of rules) {
     // A step fires on its day, with one day of grace in case a job run was missed.
@@ -372,6 +373,8 @@ async function runOverdueForOrg(admin: Admin, org: { id: string; timezone: strin
         .order("id")
         .range(from, from + 999);
       if (error) throw error;
+      if ((data?.length ?? 0) === 0) break;
+      const people = (peopleCache ??= await loadPeople(admin, org.id));
       const batch: NewNotification[] = [];
       for (const inst of data ?? []) {
         const task = inst.task as unknown as { task_name: string; created_by: string | null } | null;
@@ -479,32 +482,38 @@ export async function deliverAnnouncement(id: string): Promise<{ count: number; 
   return { count };
 }
 
-export async function runAlerts(opts: { orgId?: string } = {}): Promise<{ overdue: number; announcements: number; errors: string[] }> {
+export async function runAlerts(
+  opts: { orgId?: string; only?: "overdue" | "announcements" } = {}
+): Promise<{ overdue: number; announcements: number; errors: string[] }> {
   const admin = createAdminClient();
   const errors: string[] = [];
   let overdue = 0;
-  let orgQuery = admin.from("organizations").select("id, timezone").eq("is_active", true);
-  if (opts.orgId) orgQuery = orgQuery.eq("id", opts.orgId);
-  const { data: orgs } = await orgQuery;
-  for (const org of orgs ?? []) {
-    try {
-      overdue += await runOverdueForOrg(admin, org);
-    } catch (e) {
-      errors.push(`${org.id}: ${e instanceof Error ? e.message : String(e)}`);
+  if (opts.only !== "announcements") {
+    let orgQuery = admin.from("organizations").select("id, timezone").eq("is_active", true);
+    if (opts.orgId) orgQuery = orgQuery.eq("id", opts.orgId);
+    const { data: orgs } = await orgQuery;
+    for (const org of orgs ?? []) {
+      try {
+        overdue += await runOverdueForOrg(admin, org);
+      } catch (e) {
+        errors.push(`${org.id}: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
   }
   let announcements = 0;
-  let dueQuery = admin
-    .from("announcements")
-    .select("id")
-    .eq("status", "scheduled")
-    .lte("publish_at", new Date().toISOString());
-  if (opts.orgId) dueQuery = dueQuery.eq("org_id", opts.orgId);
-  const { data: due } = await dueQuery;
-  for (const a of due ?? []) {
-    const r = await deliverAnnouncement(a.id);
-    if (r.error) errors.push(`announcement ${a.id}: ${r.error}`);
-    else announcements++;
+  if (opts.only !== "overdue") {
+    let dueQuery = admin
+      .from("announcements")
+      .select("id")
+      .eq("status", "scheduled")
+      .lte("publish_at", new Date().toISOString());
+    if (opts.orgId) dueQuery = dueQuery.eq("org_id", opts.orgId);
+    const { data: due } = await dueQuery;
+    for (const a of due ?? []) {
+      const r = await deliverAnnouncement(a.id);
+      if (r.error) errors.push(`announcement ${a.id}: ${r.error}`);
+      else announcements++;
+    }
   }
   return { overdue, announcements, errors };
 }

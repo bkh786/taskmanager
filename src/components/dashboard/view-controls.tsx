@@ -22,7 +22,7 @@ export function ViewTabs({ view }: { view: string }) {
   return (
     <div className="flex bg-chip-bg rounded-lg p-[3px] gap-0.5">
       {VIEWS.map((v) => (
-        <Link
+        <Link prefetch={false}
           key={v.id}
           href={hrefFor(v.id)}
           className="border-none px-3.5 py-1.5 rounded-md text-[13px] font-semibold"

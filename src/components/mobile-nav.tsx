@@ -48,7 +48,7 @@ export function MobileNav({ role }: { role: AppUser["system_role"] }) {
               {nav.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(item.href + "/");
                 return (
-                  <Link
+                  <Link prefetch={false}
                     key={item.href}
                     href={item.href}
                     onClick={() => setOpen(false)}

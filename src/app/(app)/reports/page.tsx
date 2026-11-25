@@ -60,7 +60,7 @@ export default async function ReportsPage({
           ["reports", "Task Reports"],
         ] as const
       ).map(([key, label]) => (
-        <Link
+        <Link prefetch={false}
           key={key}
           href={`/reports?view=${key}`}
           className="px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap -mb-px border-b-2"

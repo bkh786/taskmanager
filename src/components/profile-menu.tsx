@@ -65,7 +65,7 @@ export function ProfileMenu({
           <div className="px-4 py-3 border-b border-panel-border">
             <ThemeControls compact />
           </div>
-          <Link
+          <Link prefetch={false}
             href="/account"
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-[13px] text-text-body hover:bg-table-head-bg"

@@ -111,7 +111,7 @@ export function TableView({ tasks }: { tasks: TaskGroup[] }) {
             rows.map((t) => (
               <tr key={t.taskId}>
                 <td className="px-4 py-2.5 border-b border-row-hover-border">
-                  <Link
+                  <Link prefetch={false}
                     href={`/tasks/${t.representative.id}`}
                     className="text-[13.5px] font-semibold text-text-main hover:text-accent"
                   >

@@ -107,7 +107,7 @@ export default async function TaskDetailPage({
 
   return (
     <div>
-      <Link href="/dashboard" className="text-[13px] text-text-sub mb-4 inline-block">
+      <Link prefetch={false} href="/dashboard" className="text-[13px] text-text-sub mb-4 inline-block">
         ← Back to Dashboard
       </Link>
       <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-5 items-start">

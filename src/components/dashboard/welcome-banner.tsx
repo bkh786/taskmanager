@@ -162,7 +162,7 @@ export function WelcomeBanner({
         {links.length > 0 ? (
           <div className="flex flex-wrap gap-2 mt-4">
             {links.map((l) => (
-              <Link
+              <Link prefetch={false}
                 key={l.href}
                 href={l.href}
                 className="px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold text-white border border-white/35 bg-white/10 hover:bg-white/20"

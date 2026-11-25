@@ -32,7 +32,7 @@ export function ForgotForm() {
             If an account exists for that email, a reset link is on its way. It can take a
             minute or two, and it&apos;s valid for one hour.
           </div>
-          <Link href="/login" className="text-center text-[13px] font-semibold text-accent">
+          <Link prefetch={false} href="/login" className="text-center text-[13px] font-semibold text-accent">
             Back to sign in
           </Link>
         </div>
@@ -57,7 +57,7 @@ export function ForgotForm() {
           >
             {pending ? "Sending…" : "Send reset link"}
           </button>
-          <Link href="/login" className="text-center text-[13px] text-text-sub">
+          <Link prefetch={false} href="/login" className="text-center text-[13px] text-text-sub">
             Back to sign in
           </Link>
         </div>

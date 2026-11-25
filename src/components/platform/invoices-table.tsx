@@ -69,7 +69,7 @@ export function InvoicesTable({ invoices, showTenant }: { invoices: InvoiceRow[]
                     <td className={`${td} font-semibold text-text-main`}>{i.invoice_number}</td>
                     {showTenant ? (
                       <td className={td}>
-                        <Link href={`/tenants/${i.org_id}?tab=billing`} className="text-accent font-semibold">
+                        <Link prefetch={false} href={`/tenants/${i.org_id}?tab=billing`} className="text-accent font-semibold">
                           {i.org_name ?? "—"}
                         </Link>
                       </td>

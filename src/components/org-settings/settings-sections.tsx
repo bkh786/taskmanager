@@ -91,7 +91,7 @@ export async function VariablesSection({ orgId }: { orgId: string }) {
         <div className="text-[12px] text-text-faint mt-3">
           Roles are built into the app with fixed permissions, so they can&apos;t be renamed or
           added to. Change what someone can do by editing their role on the{" "}
-          <Link href="/users" className="text-accent font-semibold">
+          <Link prefetch={false} href="/users" className="text-accent font-semibold">
             User Management
           </Link>{" "}
           page.

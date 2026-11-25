@@ -1,6 +1,7 @@
 import "server-only";
 import dns from "node:dns/promises";
 import net from "node:net";
+import { createHash } from "node:crypto";
 import nodemailer from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -130,13 +131,14 @@ export type SmtpConnection = Pick<
   "smtp_host" | "smtp_port" | "smtp_username" | "smtp_password" | "smtp_secure"
 >;
 
-export async function buildTransport(cfg: SmtpConnection) {
+export async function buildTransport(cfg: SmtpConnection, opts: { pool?: boolean } = {}) {
   const host = cfg.smtp_host!;
   const port = cfg.smtp_port ?? 587;
   const mode = cfg.smtp_secure;
   const target = await resolveSmtpHost(host);
 
   return nodemailer.createTransport({
+    ...(opts.pool ? { pool: true, maxConnections: 1, maxMessages: 200 } : {}),
     host: target.address,
     port,
     secure: mode === "ssl" || (mode === "auto" && port === 465),
@@ -149,6 +151,39 @@ export async function buildTransport(cfg: SmtpConnection) {
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
   });
+}
+
+// A busy run (the daily reminder batch sends one email per task) used to open a brand
+// new SMTP connection -- DNS lookup, TLS handshake, login -- for every single message.
+// Within a warm server instance the same connection is now reused for a few minutes.
+const TRANSPORT_TTL_MS = 5 * 60 * 1000;
+const transports = new Map<string, { transport: Awaited<ReturnType<typeof buildTransport>>; expires: number }>();
+
+function transportKey(cfg: SmtpConnection): string {
+  const pass = createHash("sha256").update(cfg.smtp_password ?? "").digest("hex").slice(0, 16);
+  return [cfg.smtp_host, cfg.smtp_port, cfg.smtp_username, cfg.smtp_secure, pass].join("|");
+}
+
+async function sharedTransport(cfg: SmtpConnection) {
+  const key = transportKey(cfg);
+  const now = Date.now();
+  for (const [k, v] of transports) {
+    if (v.expires <= now) {
+      v.transport.close();
+      transports.delete(k);
+    }
+  }
+  const hit = transports.get(key);
+  if (hit) return hit.transport;
+  const transport = await buildTransport(cfg, { pool: true });
+  transports.set(key, { transport, expires: now + TRANSPORT_TTL_MS });
+  return transport;
+}
+
+function dropTransport(cfg: SmtpConnection) {
+  const key = transportKey(cfg);
+  transports.get(key)?.transport.close();
+  transports.delete(key);
 }
 
 export function fromHeader(cfg: Pick<OrgEmailConfig, "smtp_from_email" | "smtp_from_name">) {
@@ -218,8 +253,7 @@ export async function sendOrgEmail(
   }
 
   try {
-    const transport = await buildTransport(cfg);
-    await transport.sendMail({
+    const message = {
       from: fromHeader(cfg),
       to: opts.to,
       cc: opts.cc?.length ? opts.cc : undefined,
@@ -227,7 +261,17 @@ export async function sendOrgEmail(
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
-    });
+    };
+    try {
+      await (await sharedTransport(cfg)).sendMail(message);
+    } catch (first) {
+      // A reused connection may have gone stale while the server slept: once more on a fresh
+      // one, but only for connection-level failures (never after the server answered).
+      const code = (first as { code?: string }).code ?? "";
+      if (!["ECONNRESET", "ECONNECTION", "ESOCKET", "EPIPE"].includes(code)) throw first;
+      dropTransport(cfg);
+      await (await sharedTransport(cfg)).sendMail(message);
+    }
     await logNotification({
       orgId: cfg.id,
       notifType: opts.notifType,

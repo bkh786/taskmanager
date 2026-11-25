@@ -40,7 +40,7 @@ export default async function TaskManagementPage({
         {TABS.map((t) => {
           const active = t.key === tab;
           return (
-            <Link
+            <Link prefetch={false}
               key={t.key}
               href={`/task-management?tab=${t.key}`}
               className="px-4 py-2.5 text-[13.5px] font-semibold whitespace-nowrap -mb-px border-b-2"

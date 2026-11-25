@@ -43,12 +43,19 @@ function clean(items: unknown): Quote[] {
  * ZenQuotes (narrowed to work/teamwork/effort themes). Nothing is stored; a
  * curated list steps in if the service is down.
  */
+// The fetched batch is kept in memory for an hour, so a page load only picks one at random
+// instead of re-reading and re-filtering the whole batch every time.
+let pool: { quotes: Quote[]; expires: number } | null = null;
+
 export async function getThoughtOfTheDay(): Promise<Quote> {
   try {
-    const all = clean(await fetchJson("https://zenquotes.io/api/quotes"));
-    const themed = all.filter((q) => WORKPLACE.test(q.text));
-    const pool = themed.length >= 3 ? themed : all;
-    if (pool.length > 0) return pool[Math.floor(Math.random() * pool.length)];
+    if (!pool || pool.expires < Date.now()) {
+      const all = clean(await fetchJson("https://zenquotes.io/api/quotes"));
+      const themed = all.filter((q) => WORKPLACE.test(q.text));
+      const quotes = themed.length >= 3 ? themed : all;
+      if (quotes.length > 0) pool = { quotes, expires: Date.now() + 3600_000 };
+    }
+    if (pool && pool.quotes.length > 0) return pool.quotes[Math.floor(Math.random() * pool.quotes.length)];
   } catch {
     // fall through
   }
